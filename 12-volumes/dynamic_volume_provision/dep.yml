@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  serviceName: mongodb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: testtesttest
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: ebs-storage
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+  clusterIP: None
+

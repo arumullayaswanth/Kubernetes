@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: web
+  name: webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - image: nginx
+          name: app
+          volumeMounts:
+            - mountPath: /data/db
+              name: db-store
+      volumes:
+        - name: db-store
+          persistentVolumeClaim:
+            claimName: ebs-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-svc
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+  type: NodePort
+

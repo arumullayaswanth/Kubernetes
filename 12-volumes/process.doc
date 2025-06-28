@@ -1,0 +1,64 @@
+-----helm install-----
+
+https://github.com/helm/helm/releases
+
+wget https://get.helm.sh/helm-v3.14.0-linux-amd64.tar.gz
+
+tar -zxvf helm-v3.14.0-linux-amd64.tar.gz
+
+mv linux-amd64/helm /usr/local/bin/helm
+
+chmod 777 /usr/local/bin/helm  # give permissions 
+
+helm version 
+
+#Note: after create cluster we have to give Iam ec2 full access or admin access to node group IAM role then only ebs volume able to create by node 
+
+Step - 2
+Install CSI driver in EKS cluster by following below steps.
+a) After connection execute the below commands.
+
+helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+helm repo update
+
+#install aws ebs driver to kubernets 
+helm upgrade --install aws-ebs-csi-driver --namespace kube-system aws-ebs-csi-driver/aws-ebs-csi-driver
+
+Three types of create volume approaches 
+
+  1. Static hots path (pv,pvc,deployment) not recomanded if node will delete volumes also delete
+  2. Static cloud ebs(pv,pvc,deployment) static approach no effect even node will be deleted still volum persistent but ec2 volume need to create manually 
+  3. Dynamic volume provision create by Storage class (pvc,storage class) here pv is going to create by Storage class
+  
+#ReadWriteMany#
+If you need to write to the volume, and you may have multiple Pods needing to write to the volume 
+where you'd prefer the flexibility of those Pods being scheduled to different nodes, 
+and ReadWriteMany is an option given the volume plugin for your K8s cluster, use ReadWriteMany.
+
+#ReadWriteOnce#
+If you need to write to the volume but either you don't have the requirement that multiple pods should be able to write to it, 
+or ReadWriteMany simply isn't an available option for you, use ReadWriteOnce.
+
+#ReadOnlyMany
+If you only need to read from the volume, and you may have multiple Pods needing to read from the volume 
+where you'd prefer the flexibility of those Pods being scheduled to different nodes, 
+and ReadOnlyMany is an option given the volume plugin for your K8s cluster, use ReadOnlyMany.
+
+If you only need to read from the volume but either you don't have the requirement that multiple pods should be able to read from it,
+ or ReadOnlyMany simply isn't an available option for you, use ReadWriteOnce. 
+In this case, you want the volume to be read-only but the limitations of your volume plugin have forced you to 
+choose ReadWriteOnce (there's no ReadOnlyOnce option). As a good practice, consider the containers.volumeMounts.readOnly
+
+========================================================================================================================
+
+#PVC recalim policies 
+
+reclaim policy : delete # this is defualt one ,which means when ever pvc deleted pv will delete automatically cretaed by storage class but ebs volume will not delete if you want to delete delete it manually 
+
+reclaim policy : retain # it will persistant 
+
+#Types Of Vlume bindings
+
+volumebinding : Immediate # this is default one ,pv is created immdeialty 
+volumebinding : WaitForFirstConsumer  #pv will create only any pod will claim the stoarage only 
+

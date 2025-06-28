@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green-myapp
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+      replica: green
+  template:
+    metadata:
+      labels:
+        app: myapp
+        replica: green
+    spec:
+      containers:
+        - name: myapp
+          image: httpd
+          ports:
+            - name: http
+              containerPort: 80
+        

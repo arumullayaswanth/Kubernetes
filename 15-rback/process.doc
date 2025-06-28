@@ -1,0 +1,122 @@
+---------------------------------------------- RBAC process ----------------------------------------------------------
+
+Step-1 Need to create IAM user with EKS cluster permission 
+
+
+
+Step-2 aws configure --profile IAMuser
+
+ (AccessKey) 
+
+ (SecretKey)
+
+
+
+step-3 create kuberenetes Role 
+
+step-4 cretae kuberentes role binding to bind role and group
+
+step-5 add usr arn into config map file
+
+
+# Role
+==============================================================
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: developer-role
+rules:
+  - apiGroups: [""] # "" indicates the core API group ["apps"]
+    resources: ["ConfigMap"]
+    verbs: ["get", "list"]
+  - apiGroups: [""] # "" indicates the core API group ["apps"]
+    resources: ["pods"]
+    verbs: ["get", "list",]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list"]
+
+
+
+# Role Binding to map role and group
+==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+  - kind: Group
+    name: "developer"
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer-role
+  apiGroup: rbac.authorization.k8s.io
+
+
+
+
+
+#edit command and add belwow user details
+
+#kubectl edit cm aws-auth -n kube-system
+
+#aws auth config
+===============================================
+mapUsers: |
+   - userarn: arn:aws:iam::483216680875:user/devops
+     username: devops
+     groups:
+     - developer
+
+=========================================================
+
+
+kubectl get rb 
+kubectl get rolebinding
+kubectl api-resources
+
+# to add user into aws-auth file 
+kubectl edit cm aws-auth -n kube-system
+
+kubectl get cm -n kube-system
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+
+----for example below reference ------
+
+apiVersion: v1
+data:
+  mapRoles: |
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: arn:aws:iam::992382358200:role/eksctl-naresh-nodegroup-ng-bbb93ed-NodeInstanceRole-9GWNpfucPXRt
+      username: system:node:{{EC2PrivateDNSName}}
+  mapUsers: |
+   - userarn: arn:aws:iam::483216680875:user/devops
+     username: devops
+     groups:
+     - developer
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-03-22T02:22:59Z"
+  name: aws-auth
+  namespace: kube-system
+  resourceVersion: "344678"
+  uid: 8167447c-eb81-4108-8653-690369d98c4f
+
+
+
+
+After edit the file run below command to update cluster for created  user
+
+aws eks update-kubeconfig --name test --profile devops  #user 
+
+aws eks update-kubeconfig --name naresh  #for defulat one 
+

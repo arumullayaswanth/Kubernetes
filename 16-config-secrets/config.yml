@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+data:
+  MYSQL_DATABASE: mydb
+  MYSQL_USER: admin

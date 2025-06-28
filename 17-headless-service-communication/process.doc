@@ -1,0 +1,162 @@
+
+  ################## Headless service ################################ 
+
+A Headless Service is a variation of the ClusterIP Service, where the clusterIP field is set to None. Unlike traditional services, Headless Services do not use a single Service IP to proxy connections to the Pods. Instead, they allow you to directly connect to Pods without any load balancing intermediary.
+
+
+Use Cases for Headless Services
+Headless Services are particularly useful in the following scenarios:
+Service Discovery: Some service discovery mechanisms, such as Kubernetes DNS-based service discovery, require direct access to individual Pods. Headless Services provide a convenient way to achieve this.
+Stateful Applications: Applications that require direct access to individual Pods, such as databases or distributed storage systems, can benefit from using Headless Services.
+Custom Load Balancing: If you need to implement custom load balancing logic or use a specific load balancing mechanism, Headless Services allow you to directly access the Pods without relying on Kubernetes' built-in load balancing.
+
+Accessing Pods using Headless Services
+
+example through DNS name:
+
+Once you have created a Headless Service, you can access the Pods directly using their DNS names or IP addresses. 
+The DNS name for each Pod follows the pattern <pod-ip>.<namespace>.pod.cluster.local.
+
+##For example, if you have a Pod with the IP address 10.0.0.5 in the default namespace, you can access it using the DNS name like below 
+
+10-0-0-5.default.pod.cluster.local.  -----dns name
+
+Also
+
+You can also access the Pods directly by their IP addresses, 
+which can be useful for applications that require direct IP-based communication.
+10-0-0-5 --ip of the target pod
+
+
+Conclusion
+Headless Services in Kubernetes offer a unique approach to accessing individual Pods directly, without relying on a load balancer or a single Service IP. This type of service is invaluable in scenarios where direct Pod access is required, such as service discovery mechanisms, stateful applications like databases, or when implementing custom load balancing logic.
+
+By setting the clusterIP field to None, Headless Services bypass the traditional load balancing layer and instead provide a direct connection to individual Pods. This is achieved through the assignment of DNS records for each Pod, allowing you to access them by their DNS names or IP addresses.
+
+         
+
+
+
+ To access stateless to stateful communicate through headless service -->>> "podname.default.pod.cluster.local" here pod name is unique 
+
+
+
+
+Ex: Apply below statefullset file if you observer we are creation two services in the same file one is nginx-normal service and nginx-headless service 
+
+# https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-headless
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-normal
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  selector:
+    app: nginx
+---    
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: "nginx-headless"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      volumes:
+      - name: shared-volume
+        emptyDir: {}
+      initContainers:
+      - name: busybox
+        image: busybox
+        volumeMounts:
+        - name: shared-volume
+          mountPath: /nginx-data
+        command: ["/bin/sh", "-c"]
+        args: ["echo Hello from container $HOSTNAME > /nginx-data/index.html"]
+      containers:
+      - name: nginx
+        image: k8s.gcr.io/nginx-slim:0.8
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: shared-volume
+          mountPath: /usr/share/nginx/html
+        - name: www
+          mountPath: /usr/share/nginx
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Mi
+
+----------------------------------------------------------------------
+
+now run below command to create stateless pod and afte login the pod and check ns lookup and curl to stateful nginx normal service and headless service
+kubectl run -i --tty --image nginx:alpine dns-test 
+# create pod and access service from pod by using curl # create pod and access service from pod by using nslookup.
+
+==========================================================
+nslookup<servcie name> nslookup <normal service name>
+
+redirects to cluster IP works like internal load balancer
+
+nslookup <normal Service name> 
+
+we can see here cluster IP which means stateless Pod connect to stateful pod service cluster IP in this case also it will works like load balancer so not recommended   
+
+nslookup <headless service name>
+
+here result we can directly connect target pods without service so here we can define read pod and write pod 
+Name:      mysql
+Address 1: 192.168.11.161 mysql-0.mysql.default.svc.cluster.local
+Address 2: 192.168.61.95 mysql-1.mysql.default.svc.cluster.local
+
+
+# Curl to check response
+
+curl nginx-normal service 
+
+will get response from any one of the pod this is not recommended when i read should come response from read pod when write response will come for write pod
+
+
+curl nginx-headless service 
+
+so here also mostly request will go first pod always so to overcome this issue we can call like below 
+
+curl podname.nginx-headless service 
+
+ex: web0.nginx-headless service # always get response from web-0 only so stateless application communicate to stateful pod web-0 is for write operation 
+web-1.nginx-headless service # always get response from web-1 only so stateless application communicate to stateful pod web-1 is for read operation 
+
+so in this case for example only one db pod is there we can use directly deployment here there is no confusion for read and write so will go for deployment 
+
+in this case we can use cluster ip service for internal communication stateless pod to stateful db pod.
