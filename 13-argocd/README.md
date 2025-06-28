@@ -1,5 +1,5 @@
 
-# 🎉 ArgoCD: End-to-End Guide for Kids (Super Simple)
+# 🎉 ArgoCD: End-to-End Project.
 
 This guide shows you how to install ArgoCD on Kubernetes, make it do its magic, push apps with Git, and roll back if something breaks—all in easy steps.
 
