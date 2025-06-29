@@ -1,5 +1,5 @@
 
-# 🎉 ArgoCD: End-to-End Project.
+# 🎉 ArgoCD: End-to-End Guide for Kids (Super Simple)
 
 This guide shows you how to install ArgoCD on Kubernetes, make it do its magic, push apps with Git, and roll back if something breaks—all in easy steps.
 
@@ -18,22 +18,32 @@ You can follow same procedure in the official AWS document [Getting started with
    b. Grant execution permissions to kubectl executable   
    c. Move kubectl onto /usr/local/bin   
    d. Test that your kubectl installation was successful    
-   ```sh 
-   curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
-   chmod +x ./kubectl
-   mv ./kubectl /usr/local/bin 
-   kubectl version --short --client
-   ```
+```sh 
+# 1. Download kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# 2. Make it executable
+chmod +x ./kubectl
+
+# 3. Move it to a directory in your PATH
+sudo mv ./kubectl /usr/local/bin
+
+# 4. Verify the installation  
+kubectl version --client
+
+```
 
 2. Setup eksctl   
    a. Download and extract the latest release   
    b. Move the extracted binary to /usr/local/bin   
    c. Test that your eksclt installation was successful   
-   ```sh
+   d. Verify the installation   
+   
+```sh
    curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
    sudo mv /tmp/eksctl /usr/local/bin
    eksctl version
-   ```
+```
 
 3. Create an IAM Role and attache it to EC2 instance    
    `Note: create IAM user with programmatic access if your bootstrap system is outside of AWS`   
@@ -44,30 +54,45 @@ You can follow same procedure in the official AWS document [Getting started with
    - CloudFormation
 
 4. Create your cluster and nodes 
-   ```sh
-   eksctl create cluster --name cluster-name  \
-   --region region-name \
-   --node-type instance-type \
-   --nodes-min 2 \
-   --nodes-max 2 \ 
-   --zones <AZ-1>,<AZ-2>
-   
-   example:
-   eksctl create cluster --name naresh \
-      --region ap-south-1 \
-   --node-type t2.small \
+  Use the `eksctl` command to create the cluster in the `us-east-1` region:
 
+```sh
+eksctl create cluster \
+  --name my-cluster \
+  --region us-east-1 \
+  --node-type t2.small \
+  --nodes-min 2 \
+  --nodes-max 2 \
+  --zones us-east-1a,us-east-1b
+
+
+```
+
+
+7. Update kubeconfig to connect kubectl to your EKS cluster
+
+      After creating the EKS cluster, you need to configure `kubectl` so it can interact with your cluster.
+
+      Use the following command:
+```sh
+  aws eks --region us-east-1 update-kubeconfig --name my-cluster
+```
+
+8. Verify that `kubectl` is connected to your EKS cluster
+```sh
+  kubectl get nodes
+```
 
 5. To delete the EKS clsuter 
-   ```sh 
-   eksctl delete cluster naresh --region ap-south-1
-   ```
-   
-6. Validate your cluster using by creating by checking nodes and by creating a pod 
-   ```sh 
-   kubectl get nodes
-   ```
+  To delete your EKS cluster and all associated resources, use the following command:
 
+```sh
+  eksctl delete cluster --name my-cluster --region us-east-1
+```
+---
+
+
+# 🎉 ArgoCD: End-to-End Guide for Kids (Super Simple)
 
 ## What is ArgoCD?
 
@@ -133,9 +158,21 @@ Instead of pushing code, Argo CD **pulls** the latest config from Git and depl
    ```
 - After installing the ArgoCD, you can run the below command to check what resources it has created.
 
+4. Verify the deployment   
+```sh 
+   kubectl get pods -n argocd
+```
+5. Get the ArgoCD admin password
+   Validate your cluster using by creating by checking nodes and by creating a pod 
+```sh 
+   kubectl get nodes
+```
+
 4. Check that all pods in the `argocd` namespace are running:
    ```bash
    kubectl get pods -n argocd
+   kubectl get all -n argocd
+
 
           NAME                                                    READY   STATUS    RESTARTS   AGE
         pod/argocd-application-controller-0                     1/1     Running   0          106m
@@ -148,12 +185,70 @@ Instead of pushing code, Argo CD **pulls** the latest config from Git and depl
    ```
 ---
 
+4. Expose ArgoCD Server Using NodePort (Optional Alternative to Port-Forward)
+
+- 1. Edit the Service
+```bash
+   kubectl edit svc argocd-server -n argocd
+```
+- 2. Change the Service Type
+```bash
+   type: ClusterIP
+```   
+  And change it to:
+```bash  
+   type: NodePort
+```
+Then save and exit (:wq in vi).
+
+- 3. Get the External Port
+```bash
+   kubectl get svc argocd-server -n argocd
+```
+Sample output:
+
+```bash
+NAME           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)         AGE
+argocd-server  NodePort    10.100.240.54   <none>        80:32402/TCP   106m
+```
+- This means:
+- ArgoCD is now accessible at:
+- https://<your-ec2-public-ip>:31789
+
+- 4. Get the NodePort
+```bash
+   kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[0].nodePort}'
+```
+- 5. Get the IP address
+```bash
+   kubectl get nodes -o wide
+```
+- 6. Get External IP (If using LoadBalancer)
+```bash
+   kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+- 7. Get External Hostname (If LoadBalancer has DNS name)
+```bash
+   kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+- 8. ✅ 4. Login to ArgoCD
+- Get the default admin password:
+```bash
+  kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d && echo
+```
+- Use **Username:** `admin`  
+  **Password:** (the juicy secret from above)
+
+
+
+
+
 ## 3. 🚪 Open the Door (Web Interface)
 
 - Make ArgoCD visible in your browser:
-  ```bash
+```bash
   kubectl port-forward svc/argocd-server -n argocd 8080:443
-  ```
+```
 - Open your browser and go to: **https://localhost:8080**
 
 ---
