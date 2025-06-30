@@ -1,19 +1,24 @@
-apiVersion: apps/v1
-kind: ReplicaSet
-metadata:
-  name: web-rs
-spec:
-  replicas: 3 # 3 Pods should exist at all times.
-  selector:  # Pods label should be defined in ReplicaSet label selector
-    matchLabels:
-      app: webapp
-  template:
+apiVersion: apps/v1                 # API version for ReplicaSet resources
+kind: ReplicaSet                    # Specifies that this object is a ReplicaSet
+metadata:                           # Metadata about the ReplicaSet
+  name: web-rs                      # The name of the ReplicaSet
+
+spec:                               # Specification of the desired behavior
+  replicas: 3                       # Ensure that 3 matching Pods are running at all times
+
+  selector:                         # Defines how the ReplicaSet finds which Pods to manage
+    matchLabels:                    # The ReplicaSet will manage Pods with these labels
+      app: webapp                   # Match Pods with label "app: webapp"
+
+  template:                         # Template used to create Pods if needed
     metadata:
-      name: myapp-pod
+      name: myapp-pod               # (Optional) Name of the Pod, not commonly required
       labels:
-        app: webapp
-        type: front-end # Atleast 1 Pod label should match with ReplicaSet Label Selector
-    spec:
-      containers:
-      - name: nginx-container
-        image: nginx
+        app: webapp                 # This label MUST match the selector above
+        type: front-end             # Atleast 1 Pod label should match with ReplicaSet Label Selector
+
+    spec:                           # Pod specification
+      containers:                   # List of containers in the Pod
+      - name: nginx-container       # Name of the container
+        image: nginx                # Docker image to run (nginx latest by default)
+        
