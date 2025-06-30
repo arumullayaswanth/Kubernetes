@@ -1,11 +1,12 @@
-apiVersion: v1
-kind: Pod
-metadata:
-  name: myapp
-  labels:
-      app: webapp
-      type: front-end
-spec:
-  containers:
-  - name: nginx-container 
-    image: nginx
+apiVersion: v1                # API version for Pod objects is "v1"
+kind: Pod                     # Specifies that this is a Pod resource
+metadata:                     # Metadata about the Pod
+  name: myapp                 # The name of the Pod
+  labels:                     # Labels to organize and select the Pod
+    app: webapp               # Label key "app" with value "webapp"
+    type: front-end           # Label key "type" with value "front-end"
+
+spec:                         # Specification of the Pod's contents
+  containers:                 # List of containers within the Pod
+  - name: nginx-container     # Name of the container (can be any identifier)
+    image: nginx              # Docker image to use for this container (nginx latest)
