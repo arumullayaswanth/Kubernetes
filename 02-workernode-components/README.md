@@ -42,10 +42,18 @@ aws --version
 ### ✅ Step 4. Install `kubectl`
 
 ```bash
-curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+# 1. Download kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# 2. Make it executable
 chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/
+
+# 3. Move it to a directory in your PATH
+sudo mv ./kubectl /usr/local/bin
+
+# 4. Verify the installation  
 kubectl version --client
+
 ```
 
 ---
