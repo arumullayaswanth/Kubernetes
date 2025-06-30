@@ -87,7 +87,15 @@ Enter:
 ### ✅ Step 7. Create Kubernetes Cluster
 
 ```bash
-eksctl create cluster   --name my-cluster   --region us-east-1   --node-type t2.small   --nodes 2   --zones us-east-1a,us-east-1b
+eksctl create cluster \
+  --name my-cluster \
+  --region us-east-1 \
+  --node-type t2.small \
+  --nodes-min 2 \
+  --nodes-max 2 \
+  --zones us-east-1a,us-east-1b
+
+
 ```
 
 ⏱️ Wait 10–15 minutes
