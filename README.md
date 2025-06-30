@@ -51,13 +51,21 @@ kubectl version --client
   Use the `eksctl` command to create the cluster in the `us-east-1` region:
 
 ```sh
+#eksctl create cluster \
+ # --name my-cluster \
+  #--region us-east-1 \
+  #--node-type t2.small \
+  #--nodes-min 2 \
+  #--nodes-max 2 \
+  #--zones us-east-1a,us-east-1b
+
 eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
-  --node-type t2.small \
-  --nodes-min 2 \
-  --nodes-max 2 \
-  --zones us-east-1a,us-east-1b
+  --node-type t3.medium \
+  --nodes 2 \
+  --managed
+
 
 
 ```
