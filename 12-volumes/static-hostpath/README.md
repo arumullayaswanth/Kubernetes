@@ -146,6 +146,61 @@ kubectl logs deployment/mysql
 
 ## 🔌 Step 6: Connect to MySQL Locally
 
+```bash
+kubectl get pods 
+kubectl exec -it <pod-name> -- /bin/bash
+#kubectl exec -it mysql-xxxxx-xxxxx -- /bin/bash 
+mysql -u root -ppassword
+
+```
+### ✅ Useful MySQL Commands to Interact with the Database
+1. 🔍 Show all databases:
+```bash
+SHOW DATABASES;
+```
+2. ➕ Create a new database:
+```bash
+CREATE DATABASE testdb;
+```
+3. 📂 Use a specific database:
+```bash
+USE testdb;
+```
+4. 🏗 Create a new table:
+```bash
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50),
+    email VARCHAR(100)
+);
+```
+5. ➕ Insert data:
+```bash
+INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com');
+```
+6. 🔎 Query data:   
+```bash
+SELECT * FROM users;
+```
+7.🔧 Describe a table:
+```bash
+DESCRIBE users;
+```
+8. 🗑 Delete a database:
+```bash
+DROP DATABASE testdb;
+```
+
+9. 🚪 Exit the MySQL shell
+```bash
+exit
+```
+
+   
+
+- or
+
+
 Forward port:
 ```bash
 kubectl port-forward deployment/mysql 3306:3306 
