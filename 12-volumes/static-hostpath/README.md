@@ -195,7 +195,20 @@ DROP DATABASE testdb;
 ```bash
 exit
 ```
+10. 📦 View Pods in Current Namespace (with details
 
+```bash
+kubectl get pods -o wide
+```
+- Shows pods with node info, IPs, and image versions in the default namespace (or whatever your current one is).
+  
+11. 🌐 View Pods in All Namespaces (with details)
+
+```bash
+kubectl get pods -A -o wide
+```
+- Lists all pods across all namespaces, with expanded information (like node placement, pod IPs, etc).
+  
    
 
 - or
