@@ -57,7 +57,7 @@ spec:
 
 Apply it:
 ```bash
-kubectl apply -f pv.yml --kubeconfig=Cluster1.config
+kubectl apply -f pv.yml 
 ```
 
 ---
@@ -81,7 +81,7 @@ spec:
 
 Apply it:
 ```bash
-kubectl apply -f pvc.yml --kubeconfig=Cluster1.config
+kubectl apply -f pvc.yml 
 ```
 
 ---
