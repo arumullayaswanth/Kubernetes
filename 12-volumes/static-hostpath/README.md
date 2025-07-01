@@ -125,7 +125,7 @@ spec:
 
 Apply it:
 ```bash
-kubectl apply -f deployment.yml --kubeconfig=Cluster1.config
+kubectl apply -f deployment.yml
 ```
 
 ---
@@ -133,13 +133,13 @@ kubectl apply -f deployment.yml --kubeconfig=Cluster1.config
 ## 📋 Step 5: Verify Deployment
 
 ```bash
-kubectl get pods --kubeconfig=Cluster1.config
-kubectl get pvc,pv --kubeconfig=Cluster1.config
+kubectl get pods 
+kubectl get pvc,pv 
 ```
 
 To check logs:
 ```bash
-kubectl logs deployment/mysql --kubeconfig=Cluster1.config
+kubectl logs deployment/mysql 
 ```
 
 ---
@@ -148,7 +148,7 @@ kubectl logs deployment/mysql --kubeconfig=Cluster1.config
 
 Forward port:
 ```bash
-kubectl port-forward deployment/mysql 3306:3306 --kubeconfig=Cluster1.config
+kubectl port-forward deployment/mysql 3306:3306 
 ```
 
 Then connect with a client:
@@ -161,9 +161,9 @@ mysql -h 127.0.0.1 -P 3306 -u root -ppassword
 ## 🧹 Cleanup (Optional)
 
 ```bash
-kubectl delete -f deployment.yml --kubeconfig=Cluster1.config
-kubectl delete -f pvc.yml --kubeconfig=Cluster1.config
-kubectl delete -f pv.yml --kubeconfig=Cluster1.config
+kubectl delete -f deployment.yml 
+kubectl delete -f pvc.yml 
+kubectl delete -f pv.yml 
 ```
 
 ---
