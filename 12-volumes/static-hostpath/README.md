@@ -229,7 +229,13 @@ mysql -h 127.0.0.1 -P 3306 -u root -ppassword
 ## 🧹 Cleanup (Optional)
 
 ```bash
-kubectl delete -f deployment.yml 
+kubectl delete pod <pod-name> #kubectl delete pod mysql-5d7c5bc456-hl2fz
+
+- Delete Multiple Pods
+kubectl delete pod pod1 pod2 pod3
+kubectl delete pods --all
+
+kubectl delete -f deployment.yml
 kubectl delete -f pvc.yml 
 kubectl delete -f pv.yml 
 ```
