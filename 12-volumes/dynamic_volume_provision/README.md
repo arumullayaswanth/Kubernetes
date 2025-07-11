@@ -126,7 +126,7 @@ This guide explains how to install the Amazon EBS CSI Driver manually using the 
 ```bash
 kubectl get pods -n kube-system -l "app.kubernetes.io/name=aws-ebs-csi-driver"
 
-
+```
 ---
 ### ✅ Automation Installation of EBS CSI Driver on EKS
 `or Instead of you can do this process also` 
