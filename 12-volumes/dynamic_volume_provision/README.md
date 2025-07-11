@@ -249,7 +249,19 @@ kubectl get statefulset
  - Pods: `mongodb-0`, `mongodb-1`, `mongodb-2`
  - 3 PVCs and dynamically provisioned EBS volumes
 
+4. Check MongoDB Pod Status
+```bash
+kubectl get pods -l app=mongodb
 
+```
+- ✅ Output should show Running status for at least one pod:
+```bash
+NAME        READY   STATUS    RESTARTS   AGE
+mongodb-0   1/1     Running   0          2m
+mongodb-1   1/1     Running   0          2m
+mongodb-2   1/1     Running   0          2m
+
+```
 ### 📉 Step 10: Cleanup (Optional)
 
 ```bash
