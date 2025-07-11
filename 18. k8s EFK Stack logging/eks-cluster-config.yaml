@@ -1,0 +1,17 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: "uat-dev"
+  region: "ap-south-1"
+  version: "1.23"
+
+nodeGroups:
+  - name: ng-1
+    instanceType: t3.medium
+    desiredCapacity: 3     # Cluster starts with 3 nodes
+    minSize: 2             # Minimum nodes: 2
+    maxSize: 10            # Maximum nodes: 10 (Auto Scales up to this)
+    volumeSize: 30
+    ssh:
+      publicKeyName: us-east-1   # 🔁 Replace with your actual EC2 key pair name
+
