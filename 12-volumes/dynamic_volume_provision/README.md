@@ -1,10 +1,13 @@
 
-# Setup Kubernetes on Amazon EKS
+# 🛠️ Deploy MongoDB on EKS with Dynamic EBS Volumes
+- This guide walks through deploying a MongoDB StatefulSet with persistent volumes using AWS EBS CSI driver on Amazon EKS.
 
 You can follow same procedure in the official AWS document [Getting started with Amazon EKS – eksctl](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html)
 
 #### Pre-requisites: 
-- an EC2 Instance 
+- 🖥️ EC2 Instance (Amazon Linux / Ubuntu)
+- 🌐 Internet Access
+- 🧑‍💼 IAM Role attached to EC2 with the following permissions:
 
 #### AWS EKS Setup 
 1. Setup kubectl   
@@ -51,27 +54,19 @@ kubectl version --client
   Use the `eksctl` command to create the cluster in the `us-east-1` region:
 
 ```sh
-#eksctl create cluster \
- # --name my-cluster \
-  #--region us-east-1 \
-  #--node-type t2.small \
-  #--nodes-min 2 \
-  #--nodes-max 2 \
-  #--zones us-east-1a,us-east-1b
-
 eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
-  --node-type t3.medium \
-  --nodes 2 \
-  --managed
-
+  --node-type t2.small \
+  --nodes-min 2 \
+  --nodes-max 2 \
+  --zones us-east-1a,us-east-1b
 
 
 ```
+- This command will create the control plane, VPC, subnets, and managed node groups.
 
-
-7. Update kubeconfig to connect kubectl to your EKS cluster
+7. 🔗 Connect kubectl to Your EKS Cluster
 
       After creating the EKS cluster, you need to configure `kubectl` so it can interact with your cluster.
 
@@ -84,6 +79,124 @@ eksctl create cluster \
 ```sh
   kubectl get nodes
 ```
+
+### 📦 Step 9: Install the AWS EBS CSI Driver (if not auto-installed)
+
+```bash
+eksctl create addon \
+  --name aws-ebs-csi-driver \
+  --cluster my-cluster \
+  --region us-east-1 \
+  --service-account-role-arn arn:aws:iam::<your-account-id>:role/<EBS_CSI_ROLE> \
+  --force
+```
+- Confirm it's running:
+```bash
+kubectl get pods -n kube-system | grep ebs
+```
+### 🧱 Step 9: Create StorageClass
+1. File: `sc.yml`
+```yaml
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-storage
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+parameters:
+  type: gp2
+
+
+
+```
+2. Apply it:
+```bash
+kubectl apply -f sc.yml
+```
+### 🍃 Step 8: Deploy MongoDB StatefulSet
+1. File: `dep.yml`
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  serviceName: mongodb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: testtesttest
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: ebs-storage
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+  clusterIP: None
+
+```
+
+2. Apply it:
+```bash
+kubectl apply -f dep.yml
+```
+
+### 🔍 Step 9: Verify the Deployment
+```bash
+kubectl get pods
+kubectl get pvc
+kubectl get pv
+kubectl get statefulset
+
+```
+3. You should see:
+ - Pods: `mongodb-0`, `mongodb-1`, `mongodb-2`
+ - 3 PVCs and dynamically provisioned EBS volumes
+
+
+### 📉 Step 10: Cleanup (Optional)
+
+```bash
+kubectl delete -f dep.yml
+kubectl delete -f sc.yml
+```
+
+
 
 5. To delete the EKS clsuter 
   To delete your EKS cluster and all associated resources, use the following command:
