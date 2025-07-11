@@ -84,6 +84,14 @@ eksctl create cluster \
 
 ### ✅ Manual Installation of EBS CSI Driver on EKS
 
+This guide explains how to install the Amazon EBS CSI Driver manually using the AWS Console.
+#### 📌 Prerequisites
+- A running EKS cluster
+- kubectl configured to connect to your cluster
+- IAM permissions to modify EKS and IAM roles
+
+
+
 #### 1. Navigate to EKS Cluster in AWS Console
 - Go to the **AWS Console**.
 - Select **EKS** from the services.
@@ -112,6 +120,11 @@ eksctl create cluster \
 - Click **Add permissions** to confirm.
 
 ✅ Done!
+
+## 🧪 (Optional) Verify Installation via kubectl
+
+```bash
+kubectl get pods -n kube-system -l "app.kubernetes.io/name=aws-ebs-csi-driver"
 
 
 ---
