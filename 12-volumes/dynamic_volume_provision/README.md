@@ -80,16 +80,64 @@ eksctl create cluster \
   kubectl get nodes
 ```
 
-### 📦 Step 9: Install the AWS EBS CSI Driver (if not auto-installed)
+### 📦 Step 9: Install the AWS EBS CSI Driver (if not auto-installed)  
+
+### ✅ Manual Installation of EBS CSI Driver on EKS
+
+#### 1. Navigate to EKS Cluster in AWS Console
+- Go to the **AWS Console**.
+- Select **EKS** from the services.
+- Click on your **Cluster Name** to open its details.
+
+#### 2. Add the Amazon EBS CSI Driver Add-on
+- Go to the **Add-ons** tab.
+- Click **Get more add-ons**.
+- In the search bar, type and select **Amazon EBS CSI Driver**.
+- Click **Next**.
+- Click **Next** again on the configuration page.
+- Click **Create** to install the driver.
+
+#### 3. Add Necessary Permissions to Node IAM Role
+- Go back to your cluster and open the **Compute** tab.
+- Click on your **Node Group**.
+- Go to the **Details** tab.
+- Copy the **Node IAM Role** (you’ll need this for the next step).
+
+#### 4. Attach EBS CSI Policy to the Node IAM Role
+- Go to the **IAM** section of the AWS Console.
+- Search for and select the IAM Role you copied earlier.
+- Click **Add permissions**.
+- Choose **Attach policies directly**.
+- Search for and attach the policy: `AmazonEBSCSIDriverPolicy`.
+- Click **Add permissions** to confirm.
+
+✅ Done!
+
+
+---
+### ✅ Automation Installation of EBS CSI Driver on EKS
+`or Instead of you can do this process also` 
+
+- Add the EBS CSI Driver to EKS
 
 ```bash
 eksctl create addon \
   --name aws-ebs-csi-driver \
   --cluster my-cluster \
   --region us-east-1 \
-  --service-account-role-arn arn:aws:iam::<your-account-id>:role/<EBS_CSI_ROLE> \
+  --service-account-role-arn arn:aws:iam::421954350274:role/<EBS_CSI_ROLE> \
   --force
 ```
+- example
+```bash
+
+eksctl create addon \
+  --name aws-ebs-csi-driver \
+  --cluster my-cluster \
+  --region us-east-1 \
+  --service-account-role-arn arn:aws:iam::421954350274:role/eksctl-my-cluster-nodegroup-ng-3e0-NodeInstanceRole-XUluZVrFkmhG /
+```
+
 - Confirm it's running:
 ```bash
 kubectl get pods -n kube-system | grep ebs
