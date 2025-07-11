@@ -1,5 +1,15 @@
 # Step-by-Step Guide to Deploy the EFK Stack
 
+## 🏠 Architecture
+
+<table style="width: 100%; margin-bottom: 20px;">
+  <tr>
+    <td align="center" style="padding: 10px; background-color: #e9f7f5; border-radius: 8px;">
+      <img src="https://github.com/arumullayaswanth/Kubernetes/blob/8fa8f8961a264819dab364f88ff575b363522e0b/18.%20k8s%20EFK%20Stack%20logging/project%20architecture.png" width="1000%" style="border: 2px solid #ddd; border-radius: 10px;">
+      <br><b> Deploy the EFK Stack</b>
+    </td>
+  </tr>
+</table>
 
 ## Step-1 : EFK stands for Elasticsearch, Fluent bit, and Kibana.
 
