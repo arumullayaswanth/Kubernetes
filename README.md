@@ -51,25 +51,28 @@ kubectl version --client
   Use the `eksctl` command to create the cluster in the `us-east-1` region:
 
 ```sh
-#eksctl create cluster \
- # --name my-cluster \
-  #--region us-east-1 \
-  #--node-type t2.small \
-  #--nodes-min 2 \
-  #--nodes-max 2 \
-  #--zones us-east-1a,us-east-1b
-
 eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
-  --node-type t3.medium \
+  --nodegroup-name my-nodegroup \
+  --node-type t2.small \
   --nodes 2 \
-  --managed
-
-
+  --nodes-min 2 \
+  --nodes-max 10 \
+  --zones us-east-1a,us-east-1b
 
 ```
+- This sets up a cluster that can scale between 2 and 10 nodes as needed
 
+4.1 : Verify Auto Scaling Group
+- Go to AWS Console → EC2 → Auto Scaling Groups
+- Find the Auto Scaling Group with a name like:
+```perl
+eksctl-my-cluster-nodegroup-<something>
+```
+- elect the group → check:
+   - Desired Capacity: Matches current nodes (e.g., 2)
+   - Min/Max Capacity: Defines the scaling range (e.g., 2–10)
 
 7. Update kubeconfig to connect kubectl to your EKS cluster
 
@@ -78,6 +81,8 @@ eksctl create cluster \
       Use the following command:
 ```sh
   aws eks --region us-east-1 update-kubeconfig --name my-cluster
+  eksctl get nodegroup --cluster my-cluster --region us-east-1
+
 ```
 
 8. Verify that `kubectl` is connected to your EKS cluster
