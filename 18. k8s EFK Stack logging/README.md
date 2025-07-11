@@ -297,6 +297,7 @@ kubectl apply -f elasticsearch-sts.yaml
 7. Create a `elasticsearch-svc.yaml` file for the headless service.
 ```bash
 vim elasticsearch-svc.yaml
+```
 ```yaml
 kind: Service
 apiVersion: v1
@@ -489,7 +490,7 @@ kubectl apply -f fluentbit-cr.yaml
 ```
 2. **Creating the Fluent-bit Role Binding**
     - ClusterRoleBinding to bind this ClusterRole to Service Account, which will give that ServiceAccount the permissions defined in the ClusterRole.
-    - - `fluentbit-crb.yaml` for ClusterRoleBinding.
+    -  `fluentbit-crb.yaml` for ClusterRoleBinding.
 ```bash
 vim fluentbit-crb.yaml
 ```
@@ -512,11 +513,11 @@ subjects:
 kubectl apply -f fluentbit-crb.yaml
 ```
 3. Creating the Fluent-bit Service Account
-- A Service Account is a Kubernetes resource that allows you to control access to the Kubernetes API for a set of pods, which determines what the pods are allowed to do.
-- You can attach roles and role bindings to the service account, 
-to give it specific permissions to access the Kubernetes API, 
-this is done through Kubernetes Role and Rolebinding resources.
-- `fluentbit-sa.yaml` for ServiceAccount.
+ - A Service Account is a Kubernetes resource that allows you to control access to the Kubernetes API for a set of pods, which determines what the pods are allowed to do.
+ - You can attach roles and role bindings to the service account, 
+ to give it specific permissions to access the Kubernetes API, 
+ this is done through Kubernetes Role and Rolebinding resources.
+ - `fluentbit-sa.yaml` for ServiceAccount.
 ```bash
 vim fluentbit-sa.yaml
 ```
