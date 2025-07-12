@@ -181,7 +181,7 @@ This guide explains how to install the Amazon EBS CSI Driver manually using the 
 
 ```bash
 kubectl get pods -n kube-system -l "app.kubernetes.io/name=aws-ebs-csi-driver"
-
+```
 ```bash
 NAME                                  READY   STATUS    RESTARTS   AGE
 ebs-csi-controller-5fb545bdd9-28frd   5/6     Running   0          18s
@@ -191,7 +191,6 @@ ebs-csi-node-9vwgj                    3/3     Running   0          19s
 ebs-csi-node-jk5kt                    3/3     Running   0          19s
 ```
 - example outupt
-```
 ---
 
 ## Step 4: Create a Namespace
