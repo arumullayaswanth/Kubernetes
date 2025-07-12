@@ -808,7 +808,12 @@ spec:
         - operator: "Exists"
           effect: "NoSchedule"
 ```
-
+```bash
+kubectl apply -f fluentbit-ds.yaml
+```
+```bash
+kubectl get daemonset fluent-bit -n kube-logging
+```
 
 ## Step 10: Access Kibana
 1. Get the Node IP and NodePort of the Kibana service:
