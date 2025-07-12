@@ -204,6 +204,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: kube-logging
+  labels:
+    name: kube-logging
+
 ```
 Apply the namespace:
 ```bash
@@ -275,15 +278,38 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/elasticsearch/data
+        - name: increase-vm-max-map
+          image: busybox
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+          securityContext:
+            runAsUser: 0
+            privileged: true
+        - name: increase-fd-ulimit
+          image: busybox
+          command: ["sh", "-c", "ulimit -n 65536"]
+          securityContext:
+            runAsUser: 0
+            privileged: true
+
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:7.2.0
           resources:
             limits:
-              cpu: 1000m
+              cpu: "1000m"
               memory: 2Gi
             requests:
-              cpu: 500m
+              cpu: "500m"
               memory: 1Gi
           ports:
             - containerPort: 9200
@@ -292,9 +318,6 @@ spec:
             - containerPort: 9300
               name: inter-node
               protocol: TCP
-          volumeMounts:
-            - name: data
-              mountPath: /usr/share/elasticsearch/data
           env:
             - name: cluster.name
               value: k8s-logs
@@ -308,25 +331,10 @@ spec:
               value: "es-cluster-0,es-cluster-1,es-cluster-2"
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
-      initContainers:
-        - name: fix-permissions
-          image: busybox
-          command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
-          securityContext:
-            privileged: true
           volumeMounts:
             - name: data
               mountPath: /usr/share/elasticsearch/data
-        - name: increase-vm-max-map
-          image: busybox
-          command: ["sysctl", "-w", "vm.max_map_count=262144"]
-          securityContext:
-            privileged: true
-        - name: increase-fd-ulimit
-          image: busybox
-          command: ["sh", "-c", "ulimit -n 65536"]
-          securityContext:
-            privileged: true
+
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -338,6 +346,7 @@ spec:
         resources:
           requests:
             storage: 10Gi
+
 ```
 3. Apply the configurations:
 ```bash
@@ -388,8 +397,8 @@ kubectl logs es-cluster-0 -n kube-logging
 vim elasticsearch-svc.yaml
 ```
 ```yaml
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: elasticsearch
   namespace: kube-logging
@@ -398,12 +407,15 @@ metadata:
 spec:
   selector:
     app: elasticsearch
-  clusterIP: None
+  clusterIP: None  # Headless service for StatefulSet
   ports:
-    - port: 9200
-      name: rest
-    - port: 9300
-      name: inter-node
+    - name: rest
+      port: 9200
+      targetPort: 9200
+    - name: inter-node
+      port: 9300
+      targetPort: 9300
+
 
 ```
 8. Apply the configurations:
@@ -413,6 +425,9 @@ kubectl apply -f elasticsearch-svc.yaml
 9. verify the pods related to StatefulSet got created and verify the replication enabled.
 ```bash
 kubectl get pod -n kube-logging
+kubectl get svc elasticsearch -n kube-logging
+kubectl describe svc elasticsearch -n kube-logging
+
 ```
 
 ## Step 7: Set Up Kibana
@@ -455,15 +470,22 @@ spec:
               cpu: 700m
               memory: 1Gi
           env:
-            - name: ELASTICSEARCH_URL
-              value: http://elasticsearch:9200
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch:9200"  # ✅ Correct env var name for Kibana 7.x+
           ports:
             - containerPort: 5601
+              name: http
+
 
 ```
 3. Apply the configurations:
 ```bash
 kubectl apply -f kibana-deploy.yaml
+```
+- 🧪 To Check:
+```bash
+kubectl get pods -n kube-logging -l app=kibana
+kubectl logs -n kube-logging deployment/kibana
 ```
 
 4. **Creating the Kibana Service**
@@ -487,9 +509,13 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 5601
+    - port: 5601             # Port exposed inside the cluster
+      targetPort: 5601       # Port on the container
+      nodePort: 30856        # Optional: Custom NodePort (range 30000-32767)
+      protocol: TCP
   selector:
     app: kibana
+
 ```    
 6. Apply the configurations:
 ```bash
@@ -511,6 +537,8 @@ kibana   NodePort   10.100.4.19   <none>        5601:30838/TCP   43s
 - Open your browser and go to:
 ```cpp
 http://<EC2-node-public-IP>:30601
+http://<any-worker-node-public-ip>:30856
+
 ```
 **OR**
 
