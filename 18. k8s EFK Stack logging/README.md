@@ -82,7 +82,7 @@ kind: ClusterConfig
 metadata:
   name: "uat-dev"
   region: "us-east-1"
-  version: "1.23"
+  version: "1.33"
 
 nodeGroups:
   - name: ng-1
