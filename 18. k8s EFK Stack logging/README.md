@@ -165,7 +165,7 @@ kubectl get pods -n kube-system -l "app.kubernetes.io/name=aws-ebs-csi-driver"
 Create a `custom-namespace.yaml` file:
 ```bash
 vim custom-namespace.yaml
-
+```
 ```yaml
 apiVersion: v1
 kind: Namespace
