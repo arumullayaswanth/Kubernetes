@@ -174,7 +174,7 @@ metadata:
 ```
 Apply the namespace:
 ```bash
-kubectl apply -f namespace.yaml
+kubectl apply -f custom-namespace.yaml
 ```
 
 ## Step 5: Create StorageClass named “ebs-storage“
