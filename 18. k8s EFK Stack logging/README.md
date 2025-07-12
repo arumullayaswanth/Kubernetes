@@ -499,6 +499,14 @@ kubectl apply -f kibana-svc.yaml
 ```bash
 kubectl get nodes -o wide
 ```
+```bash
+kubectl get svc kibana -n kube-logging
+```
+- output:
+```bash
+NAME     TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)          AGE
+kibana   NodePort   10.100.4.19   <none>        5601:30838/TCP   43s
+```
 - Open your browser and go to:
 ```cpp
 http://<EC2-node-public-IP>:30601
