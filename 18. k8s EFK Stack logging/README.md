@@ -92,6 +92,7 @@ nodeGroups:
     maxSize: 10            # Maximum nodes: 10 (Auto Scales up to this)
     volumeSize: 30
     ssh:
+      allow : true
       publicKeyName: us-east-1   # 🔁 Replace with your actual EC2 key pair name
 
 
