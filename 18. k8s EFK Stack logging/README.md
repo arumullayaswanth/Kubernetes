@@ -736,3 +736,10 @@ kubectl get svc -n kube-logging
 2. Create an index pattern to view logs.
 
 You can now deploy applications and monitor logs in Kibana.
+
+
+## step 11: Delete Everything with One Command (if all resources were in YAML files
+```bash
+kubectl delete -f eks-cluster-config.yaml
+
+```
