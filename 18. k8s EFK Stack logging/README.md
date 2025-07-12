@@ -103,12 +103,36 @@ eksctl create cluster -f eks-cluster-config.yaml
 ```bash
  aws eks --region us-east-1 update-kubeconfig --name uat-dev
 ```
+- example output:
+```bash
+Updated context arn:aws:eks:us-east-1:421954350274:cluster/uat-dev in /root/.kube/config
+```
 ```bash
 eksctl get nodegroup --cluster uat-dev --region us-east-1
+```
+- example output:
+```bash
+CLUSTER NODEGROUP : `uat-dev`
+STATUS : `ng-1 `
+CREATED:  `CREATE_COMPLETE 2025-07-12T10:20:58Z`
+MIN SIZE : `2`
+MAX SIZE : `10`
+DESIRED CAPACITY : `3`
+INSTANCE TYPE : `t3.medium` 
+IMAGE ID : `ami-0e26ca27395ce58ad`
+ASG NAME : `eksctl-uat-dev-nodegroup-ng-1-NodeGroup-IbEoN15Va2Mt`
+TYPE : `unmanaged`
 ```
 ```bash
   kubectl get nodes
 ```
+- output
+```bash
+NAME                             STATUS   ROLES    AGE   VERSION
+ip-192-168-10-32.ec2.internal    Ready    <none>   21m   v1.33.0-eks-802817d
+ip-192-168-47-2.ec2.internal     Ready    <none>   21m   v1.33.0-eks-802817d
+ip-192-168-63-193.ec2.internal   Ready    <none>   21m   v1.33.0-eks-802817d
+``` 
 ---
 
 ## Step-3 : Give the cluster Administrator access / EBS access.
@@ -158,6 +182,15 @@ This guide explains how to install the Amazon EBS CSI Driver manually using the 
 ```bash
 kubectl get pods -n kube-system -l "app.kubernetes.io/name=aws-ebs-csi-driver"
 
+```bash
+NAME                                  READY   STATUS    RESTARTS   AGE
+ebs-csi-controller-5fb545bdd9-28frd   5/6     Running   0          18s
+ebs-csi-controller-5fb545bdd9-z5d9x   5/6     Running   0          18s
+ebs-csi-node-2fk5l                    3/3     Running   0          19s
+ebs-csi-node-9vwgj                    3/3     Running   0          19s
+ebs-csi-node-jk5kt                    3/3     Running   0          19s
+```
+- example outupt
 ```
 ---
 
@@ -175,6 +208,14 @@ metadata:
 Apply the namespace:
 ```bash
 kubectl apply -f custom-namespace.yaml
+```
+```bash
+kubectl get namespace kube-logging
+```
+- example output:
+```bash
+NAME           STATUS   AGE
+kube-logging   Active   12s
 ```
 
 ## Step 5: Create StorageClass named “ebs-storage“
@@ -197,6 +238,16 @@ Apply the StorageClass:
 ```bash
 kubectl apply -f storage-cls.yaml
 ```
+```bash
+kubectl get storageclass
+```
+- example output
+```bash
+NAME          PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+ebs-storage   ebs.csi.aws.com         Retain          WaitForFirstConsumer   false                  25s
+gp2           kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer   false                  30m
+
+```
 
 ## Step 6: Set Up Elasticsearch
 1. Creating the Elasticsearch StatefulSet
@@ -205,7 +256,7 @@ kubectl apply -f storage-cls.yaml
 
 2. Create a `elasticsearch-sts.yaml` file for the StatefulSet.
 ```bash
-vim elsaticsearch-sts.yaml
+vim elasticsearch-sts.yaml
 ```
 ```yaml
 apiVersion: apps/v1
@@ -291,6 +342,34 @@ spec:
 3. Apply the configurations:
 ```bash
 kubectl apply -f elasticsearch-sts.yaml
+```
+```bash
+#Check if the StatefulSet is created
+kubectl get statefulset -n kube-logging
+```
+- output
+```bash
+NAME          READY   AGE
+es-cluster    3/3     2m
+```
+```bash
+#Check pod status
+kubectl get pods -n kube-logging -l app=elasticsearch
+```
+- output
+```bash
+NAME            READY   STATUS    RESTARTS   AGE
+es-cluster-0    1/1     Running   0          2m
+es-cluster-1    1/1     Running   0          1m
+es-cluster-2    1/1     Running   0          50s
+```
+```bash
+#Describe the pods (for troubleshooting)
+kubectl describe pod es-cluster-0 -n kube-logging
+```
+```bash
+#Check pod logs
+kubectl logs es-cluster-0 -n kube-logging
 ```
 
 4. **what is headless service ?**
