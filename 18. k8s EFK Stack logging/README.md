@@ -336,16 +336,16 @@ spec:
               mountPath: /usr/share/elasticsearch/data
 
   volumeClaimTemplates:
-    - metadata:
-        name: data
-        labels:
-          app: elasticsearch
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: ebs-storage
-        resources:
-          requests:
-            storage: 10Gi
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+      # 🎯 Add or update this line:
+      storageClassName: gp2
+
 
 ```
 3. Apply the configurations:
