@@ -910,17 +910,18 @@ kubectl get pods --all-namespaces -o wide
 kubectl delete pod <pod-name> -n <namespace> --grace-period=0 --force
 ```
 - example
-  ```bash
+```bash
 kubectl delete daemonset aws-node -n kube-system
 kubectl delete daemonset kube-proxy -n kube-system
 kubectl delete daemonset ebs-csi-node -n kube-system
 kubectl delete daemonset fluent-bit -n kube-logging
 ```
 3.
+
 ```bash
 eksctl delete cluster --name uat-dev --disable-nodegroup-eviction
 ```
+
 ```bash
 kubectl delete -f eks-cluster-config.yaml
-
 ```
