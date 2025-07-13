@@ -859,6 +859,25 @@ You can now deploy applications and monitor logs in Kibana.
 
 
 ## step 11: Delete Everything with One Command (if all resources were in YAML files
+1. Identify the pod on the node:
+```bash
+kubectl get pods --all-namespaces -o wide 
+```
+2. Delete the pod forcefully:
+```bash
+kubectl delete pod <pod-name> -n <namespace> --grace-period=0 --force
+```
+- example
+  ```bash
+kubectl delete daemonset aws-node -n kube-system
+kubectl delete daemonset kube-proxy -n kube-system
+kubectl delete daemonset ebs-csi-node -n kube-system
+kubectl delete daemonset fluent-bit -n kube-logging
+```
+3.
+```bah
+eksctl delete cluster --name uat-dev --disable-nodegroup-eviction
+```
 ```bash
 kubectl delete -f eks-cluster-config.yaml
 
