@@ -917,7 +917,7 @@ kubectl delete daemonset ebs-csi-node -n kube-system
 kubectl delete daemonset fluent-bit -n kube-logging
 ```
 3.
-```bah
+```bash
 eksctl delete cluster --name uat-dev --disable-nodegroup-eviction
 ```
 ```bash
