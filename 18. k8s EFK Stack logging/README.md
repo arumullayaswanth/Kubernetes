@@ -558,10 +558,13 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - port: 5601
+    - name: http
+      port: 5601
       targetPort: 5601
+      protocol: TCP
   selector:
     app: kibana
+
 ```
 - Apply the Service
 ```bash
@@ -586,6 +589,16 @@ or
 ```cpp
 http://<ELB-DNS>:5601
 ```
+1. 🧪 Troubleshooting Tips if It's Not Accessible:
+- Ensure Kibana Pod is Running:
+  ```bash
+  kubectl get pods -n kube-logging -l app=kibana
+```
+- Check logs:
+```bash
+kubectl logs deployment/kibana -n kube-logging
+```
+- Make sure your AWS Security Groups allow inbound port 5601 from your IP.
 ---
 
 
@@ -600,13 +613,18 @@ kind: ClusterRole
 metadata:
   name: fluent-bit
   labels:
-    app: fluent-bit
+    app.kubernetes.io/name: fluent-bit
 rules:
   - apiGroups: [""]
     resources:
       - pods
       - namespaces
-    verbs: ["get", "list", "watch"]
+    verbs:
+      - get
+      - list
+      - watch
+
+
 ```
 - Apply the configurations:
 
@@ -620,18 +638,21 @@ kubectl apply -f fluentbit-cr.yaml
 vim fluentbit-crb.yaml
 ```
 ```yaml
-kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
   name: fluent-bit
+  labels:
+    app.kubernetes.io/name: fluent-bit
 roleRef:
+  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: fluent-bit
-  apiGroup: rbac.authorization.k8s.io
 subjects:
   - kind: ServiceAccount
     name: fluent-bit
     namespace: kube-logging
+
 ```
 - Apply the configurations:
 ```bash
@@ -654,6 +675,7 @@ metadata:
   namespace: kube-logging
   labels:
     app: fluent-bit
+
 ```
 - Apply the configurations:
 ```bash
@@ -677,20 +699,20 @@ metadata:
   labels:
     k8s-app: fluent-bit
 data:
-  # Configuration files: server, input, filters and output
-  # ======================================================
   fluent-bit.conf: |
     [SERVICE]
-        Flush         1
-        Log_Level     info
-        Daemon        off
-        Parsers_File  parsers.conf
-        HTTP_Server   On
-        HTTP_Listen   0.0.0.0
-        HTTP_Port     2020
+        Flush        1
+        Log_Level    info
+        Daemon       off
+        Parsers_File parsers.conf
+        HTTP_Server  On
+        HTTP_Listen  0.0.0.0
+        HTTP_Port    2020
+
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
     @INCLUDE output-elasticsearch.conf
+
   input-kubernetes.conf: |
     [INPUT]
         Name              tail
@@ -701,6 +723,7 @@ data:
         Mem_Buf_Limit     5MB
         Skip_Long_Lines   On
         Refresh_Interval  10
+
   filter-kubernetes.conf: |
     [FILTER]
         Name                kubernetes
@@ -713,6 +736,7 @@ data:
         Merge_Log_Key       log_processed
         K8S-Logging.Parser  On
         K8S-Logging.Exclude Off
+
   output-elasticsearch.conf: |
     [OUTPUT]
         Name            es
@@ -722,46 +746,54 @@ data:
         Logstash_Format On
         Replace_Dots    On
         Retry_Limit     False
+
   parsers.conf: |
     [PARSER]
-        Name   apache
-        Format regex
-        Regex  ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
-        Time_Key time
+        Name        apache
+        Format      regex
+        Regex       ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key    time
         Time_Format %d/%b/%Y:%H:%M:%S %z
+
     [PARSER]
-        Name   apache2
-        Format regex
-        Regex  ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^ ]*) +\S*)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
-        Time_Key time
+        Name        apache2
+        Format      regex
+        Regex       ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^ ]*) +\S*)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key    time
         Time_Format %d/%b/%Y:%H:%M:%S %z
+
     [PARSER]
-        Name   apache_error
-        Format regex
-        Regex  ^\[[^ ]* (?<time>[^\]]*)\] \[(?<level>[^\]]*)\](?: \[pid (?<pid>[^\]]*)\])?( \[client (?<client>[^\]]*)\])? (?<message>.*)$
+        Name        apache_error
+        Format      regex
+        Regex       ^\[[^ ]* (?<time>[^\]]*)\] \[(?<level>[^\]]*)\](?: \[pid (?<pid>[^\]]*)\])?( \[client (?<client>[^\]]*)\])? (?<message>.*)$
+
     [PARSER]
-        Name   nginx
-        Format regex
-        Regex ^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
-        Time_Key time
+        Name        nginx
+        Format      regex
+        Regex       ^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key    time
         Time_Format %d/%b/%Y:%H:%M:%S %z
+
     [PARSER]
-        Name   json
-        Format json
-        Time_Key time
+        Name        json
+        Format      json
+        Time_Key    time
         Time_Format %d/%b/%Y:%H:%M:%S %z
+
     [PARSER]
         Name        docker
         Format      json
         Time_Key    time
         Time_Format %Y-%m-%dT%H:%M:%S.%L
         Time_Keep   On
+
     [PARSER]
         Name        syslog
         Format      regex
         Regex       ^\<(?<pri>[0-9]+)\>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
         Time_Key    time
         Time_Format %b %d %H:%M:%S
+
 ```
 - Apply the configurations:
 ```bash
@@ -797,17 +829,27 @@ spec:
         prometheus.io/port: "2020"
         prometheus.io/path: /api/v1/metrics/prometheus
     spec:
+      serviceAccountName: fluent-bit
       containers:
         - name: fluent-bit
           image: fluent/fluent-bit:1.3.11
           imagePullPolicy: Always
           ports:
             - containerPort: 2020
+              name: metrics
+              protocol: TCP
           env:
             - name: FLUENT_ELASTICSEARCH_HOST
               value: "elasticsearch"
             - name: FLUENT_ELASTICSEARCH_PORT
               value: "9200"
+          resources:
+            limits:
+              memory: 200Mi
+              cpu: 200m
+            requests:
+              memory: 100Mi
+              cpu: 100m
           volumeMounts:
             - name: varlog
               mountPath: /var/log
@@ -827,15 +869,15 @@ spec:
         - name: fluent-bit-config
           configMap:
             name: fluent-bit-config
-      serviceAccountName: fluent-bit
       tolerations:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
-        - operator: "Exists"
-          effect: "NoExecute"
-        - operator: "Exists"
-          effect: "NoSchedule"
+        - operator: Exists
+          effect: NoExecute
+        - operator: Exists
+          effect: NoSchedule
+
 ```
 ```bash
 kubectl apply -f fluentbit-ds.yaml
