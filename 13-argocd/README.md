@@ -141,92 +141,120 @@ Instead of pushing code, Argo CD **pulls** the latest config from Git and depl
 - Need help? Just look up "Minikube install".
 
 ---
-
 ## 2. 🎉 Install ArgoCD
 
-1. Open your terminal.
+### 1. Create Namespace for ArgoCD
 
-2. Make a special spot for ArgoCD:
-   ```bash
-   kubectl create namespace argocd
-   ```
-
-3. Put ArgoCD in that spot:
-   ```bash
-   kubectl apply -n argocd \
-     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   ```
-- After installing the ArgoCD, you can run the below command to check what resources it has created.
-
-4. Verify the deployment   
-```sh 
-   kubectl get pods -n argocd
-```
-5. Get the ArgoCD admin password
-   Validate your cluster using by creating by checking nodes and by creating a pod 
-```sh 
-   kubectl get nodes
+```bash
+kubectl create namespace argocd
 ```
 
-4. Check that all pods in the `argocd` namespace are running:
-   ```bash
-   kubectl get pods -n argocd
-   kubectl get all -n argocd
+### 2. Install ArgoCD in the Created Namespace
 
+```bash
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
 
-          NAME                                                    READY   STATUS    RESTARTS   AGE
-        pod/argocd-application-controller-0                     1/1     Running   0          106m
-        pod/argocd-applicationset-controller-787bfd9669-4mxq6   1/1     Running   0          106m
-        pod/argocd-dex-server-bb76f899c-slg7k                   1/1     Running   0          106m
-        pod/argocd-notifications-controller-5557f7bb5b-84cjr    1/1     Running   0          106m
-        pod/argocd-redis-b5d6bf5f5-482qq                        1/1     Running   0          106m
-        pod/argocd-repo-server-56998dcf9c-c75wk                 1/1     Running   0          106m
-        pod/argocd-server-5985b6cf6f-zzgx8                      1/1     Running   0          106m
-   ```
+### 3. Verify the Installation
+
+```bash
+kubectl get pods -n argocd
+```
+
+Ensure all pods are in `Running` state.
+
+### 4. Validate the Cluster
+
+Check your nodes and create a test pod if necessary:
+
+```bash
+kubectl get nodes
+```
+
+### 5. List All ArgoCD Resources
+
+```bash
+kubectl get all -n argocd
+```
+
+Sample output:
+
+```
+NAME                                                    READY   STATUS    RESTARTS   AGE
+pod/argocd-application-controller-0                     1/1     Running   0          106m
+pod/argocd-applicationset-controller-787bfd9669-4mxq6   1/1     Running   0          106m
+pod/argocd-dex-server-bb76f899c-slg7k                   1/1     Running   0          106m
+pod/argocd-notifications-controller-5557f7bb5b-84cjr    1/1     Running   0          106m
+pod/argocd-redis-b5d6bf5f5-482qq                        1/1     Running   0          106m
+pod/argocd-repo-server-56998dcf9c-c75wk                 1/1     Running   0          106m
+pod/argocd-server-5985b6cf6f-zzgx8                      1/1     Running   0          106m
+```
+
 ---
 
-4. Expose ArgoCD Server Using NodePort (Optional Alternative to Port-Forward)
+## 3. 🚀 Expose ArgoCD Server Using LoadBalancer
 
-- 1. Edit the Service
-```bash
-   kubectl edit svc argocd-server -n argocd
-```
-- 2. Change the Service Type
-```bash
-   type: ClusterIP
-```   
-  And change it to:
-```bash  
-  type: LoadBalancer
-```
-Then save and exit (:wq in vi).
+### 1. Edit the ArgoCD Server Service
 
-- 3. Get the External Port
 ```bash
-   kubectl get svc argocd-server -n argocd
+kubectl edit svc argocd-server -n argocd
 ```
+
+### 2. Change the Service Type
+
+Find this line:
+
+```yaml
+type: ClusterIP
+```
+
+Change it to:
+
+```yaml
+type: LoadBalancer
+```
+
+Save and exit (`:wq` for `vi`).
+
+### 3. Get the External Load Balancer DNS
+
+```bash
+kubectl get svc argocd-server -n argocd
+```
+
 Sample output:
 
 ```bash
-NAME            TYPE           CLUSTER-IP     EXTERNAL-IP        PORT(S)                     AGE
-argocd-server   LoadBalancer   172.20.1.100   a1b2c3d4e5f6.elb.amazonaws.com   80:31234/TCP,443:31356/TCP   2m
+NAME            TYPE           CLUSTER-IP     EXTERNAL-IP                           PORT(S)                          AGE
+argocd-server   LoadBalancer   172.20.1.100   a1b2c3d4e5f6.elb.amazonaws.com        80:31234/TCP,443:31356/TCP       2m
 ```
-- This means:
-- ArgoCD is now accessible at:
+
+### 4. Access the ArgoCD UI
+
+Use the DNS:
+
 ```bash
-https://<ELB-DNS>.amazonaws.com
+https://<EXTERNAL-IP>.amazonaws.com
 ```
+
 ---
 
-5. 🔐 Get Argo CD admin password
+## 4. 🔐 Get the Initial ArgoCD Admin Password
 
 ```bash
-kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d && echo
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d && echo
 ```
-- Then log in with:
-   - **Username:** `admin`
-   - **Password:** (the juicy secret from above)
 
+### Login Details:
+
+* **Username:** `admin`
+* **Password:** (The output of the above command)
+
+
+
+---
 
 ## 7. 🚀 Create Your First App (Git → Kubernetes)
 
