@@ -197,7 +197,7 @@ Instead of pushing code, Argo CD **pulls** the latest config from Git and depl
 ```   
   And change it to:
 ```bash  
-   type: NodePort
+  type: LoadBalancer
 ```
 Then save and exit (:wq in vi).
 
@@ -208,12 +208,15 @@ Then save and exit (:wq in vi).
 Sample output:
 
 ```bash
-NAME           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)         AGE
-argocd-server  NodePort    10.100.240.54   <none>        80:32402/TCP   106m
+NAME            TYPE           CLUSTER-IP     EXTERNAL-IP        PORT(S)                     AGE
+argocd-server   LoadBalancer   172.20.1.100   a1b2c3d4e5f6.elb.amazonaws.com   80:31234/TCP,443:31356/TCP   2m
 ```
 - This means:
 - ArgoCD is now accessible at:
-- https://<your-ec2-public-ip>:31789
+- https://<ELB-DNS>.amazonaws.com
+
+
+5. 🔐 Get Argo CD admin password
 
 - 4. Get the NodePort
 ```bash
