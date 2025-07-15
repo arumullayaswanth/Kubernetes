@@ -213,80 +213,20 @@ argocd-server   LoadBalancer   172.20.1.100   a1b2c3d4e5f6.elb.amazonaws.com   8
 ```
 - This means:
 - ArgoCD is now accessible at:
-- https://<ELB-DNS>.amazonaws.com
-
+```bash
+https://<ELB-DNS>.amazonaws.com
+```
+---
 
 5. 🔐 Get Argo CD admin password
 
-- 4. Get the NodePort
 ```bash
-   kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[0].nodePort}'
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d && echo
 ```
-- 5. Get the IP address
-```bash
-   kubectl get nodes -o wide
-```
-- 6. Get External IP (If using LoadBalancer)
-```bash
-   kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-```
-- 7. Get External Hostname (If LoadBalancer has DNS name)
-```bash
-   kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-```
-- 8. ✅ 4. Login to ArgoCD
-- Get the default admin password:
-```bash
-  kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d && echo
-```
-- Use **Username:** `admin`  
-  **Password:** (the juicy secret from above)
+- Then log in with:
+   - **Username:** `admin`
+   - **Password:** (the juicy secret from above)
 
-
-
-
-
-## 3. 🚪 Open the Door (Web Interface)
-
-- Make ArgoCD visible in your browser:
-```bash
-  kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-- Open your browser and go to: **https://localhost:8080**
-
----
-
-## 4. 🔐 Get the Unlock Code
-
-- To log in, we need the secret password:
-  ```bash
-  kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath="{.data.password}" | base64 -d
-  ```
-- Use **Username:** `admin`  
-  **Password:** (the juicy secret from above)
-
----
-
-## 5. 💻 Install CLI (the ArgoCD Tool You Use in Terminal)
-
-- On Mac:
-  ```bash
-  brew install argocd
-  ```
-- On Linux/Windows: follow [ArgoCD CLI guide](https://argo-cd.readthedocs.io/en/stable/getting_started/)
-
----
-
-## 6. 🛡️ Log in with CLI
-
-- With CLI:
-  ```bash
-  argocd login localhost:8080 \
-    --username admin --password (your password) --insecure
-  ```
-
----
 
 ## 7. 🚀 Create Your First App (Git → Kubernetes)
 
