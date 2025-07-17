@@ -12,7 +12,7 @@ spec:
     path: 13-argocd
   destination: 
     server: https://kubernetes.default.svc
-    namespace: myapp
+    namespace: dev
 
   syncPolicy:
     syncOptions:
