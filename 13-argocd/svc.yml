@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: hotstar-app
+  name: swiggy-app
   labels:
-    app: hotstar-app
+    app: swiggy-app
 spec:
   type: LoadBalancer
   ports:
-    - port: 80
-      targetPort: 3000
+  - port: 80
+    targetPort: 3000
   selector:
-    app: hotstar-app
+    app: swiggy-app
