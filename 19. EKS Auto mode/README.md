@@ -3,6 +3,7 @@
 
 I’ve published a detailed video that explains how **Amazon EKS Auto Mode** simplifies Kubernetes by removing the operational pain of managing nodes, scaling infrastructure, and handling compute provisioning manually.
 
+![EKS Auto Mode Diagram](https://github.com/arumullayaswanth/Kubernetes/blob/46e66383474727f7adf6e627c58a6d5f6d467e33/19.%20EKS%20Auto%20mode/youtube%20design.png)
 🔗 **Watch the Lecture:** https://youtu.be/gDFH9jg4fGA
 
 ---
