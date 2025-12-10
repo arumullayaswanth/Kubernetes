@@ -37,6 +37,10 @@ aws eks describe-cluster \
   --query "cluster.version"
 ```
 
+```bash
+kubectl version --short
+```
+
 ---
 
 ## ## **2. Upgrade Node Groups / Worker Nodes / Fargate**
@@ -45,6 +49,10 @@ aws eks describe-cluster \
 
 ```bash
 eksctl get nodegroup --cluster eksupgrade --region us-east-1
+```
+
+```bash
+kubectl get nodes -o wide
 ```
 
 ### Upgrade a Managed Node Group:
@@ -139,9 +147,20 @@ helm upgrade metrics-server \
   --namespace kube-system
 ```
 
----
+# **4. Validate Add-on Versions**
 
-# ## **4. Validate the Upgrade**
+```bash
+kubectl get pods -n kube-system
+```
+
+You should see:
+
+* coredns pods recreated
+* kube-proxy DaemonSet updated
+* aws-node updated
+
+
+# ## **5. Validate the Upgrade**
 
 ### Check node versions:
 
@@ -160,7 +179,48 @@ kubectl get pods -n kube-system
 ```bash
 kubectl version --short
 ```
+---
+
+# **6. Final Verification Test**
+
+### Test cluster health:
+
+```bash
+kubectl get componentstatuses
+```
+
+### Test workload scheduling:
+
+```bash
+kubectl run nginx-test \
+  --image=nginx \
+  --restart=Never
+```
+
+Check pod:
+
+```bash
+kubectl get pod nginx-test -o wide
+```
+
+Delete test pod:
+
+```bash
+kubectl delete pod nginx-test
+```
 
 ---
+
+# **7. (Optional) Delete Cluster After Testing**
+
+```bash
+eksctl delete cluster \
+  --name eksupgrade \
+  --region us-east-1
+```
+
+---
+
+
 
 
