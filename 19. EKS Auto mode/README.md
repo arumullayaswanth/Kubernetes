@@ -27,13 +27,8 @@ I’ve published a detailed video that explains how **Amazon EKS Auto Mode** sim
 - Avoiding over-provisioning  
 
 #### 4️⃣ Difference Between Classic EKS vs EKS Auto Mode
-| Feature | Classic EKS | EKS Auto Mode |
-|--------|-------------|----------------|
-| Node Management | Manual | Automated |
-| Scalability | Cluster Autoscaler | Pod-driven auto compute |
-| Cost Efficiency | Node-level billing | Pod-level billing |
-| Infra Ops | High | Very Low |
-| Complexity | Medium/High | Low |
+![EKS Auto Mode Diagram](https://github.com/arumullayaswanth/Kubernetes/blob/990d9d168e29fa90455176b86c83c65064bed122/19.%20EKS%20Auto%20mode/images.png?raw=1)
+
 
 #### 5️⃣ How to Create an EKS Auto Mode Cluster
 - Step-by-step walkthrough  
