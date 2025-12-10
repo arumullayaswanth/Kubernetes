@@ -84,5 +84,3 @@ eks-node-viewer
 ```
 
 ---
-
-If you want, I can also **build a complete README.md file** or **add this content into a structured template**.
