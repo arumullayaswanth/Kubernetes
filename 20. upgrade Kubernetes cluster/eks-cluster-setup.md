@@ -140,6 +140,47 @@ This updates `~/.kube/config` so kubectl can communicate with the cluster.
 
 ---
 
+#### **1. Check Nodes**
+
+Verifies that the worker nodes from your node group successfully joined the cluster.
+
+```bash
+kubectl get nodes -o wide
+```
+
+#### **2. Check Pods (All Namespaces)**
+
+Confirms that system pods inside the cluster are running properly.
+
+```bash
+kubectl get pods -A
+```
+
+#### **3. Check Cluster Info**
+
+Shows Kubernetes API endpoints and services.
+
+```bash
+kubectl cluster-info
+```
+
+#### **4. Check Kubernetes Version**
+
+```bash
+kubectl version --short
+```
+
+#### **5. Get EKS Cluster Version (AWS CLI)**
+
+```bash
+aws eks describe-cluster \
+  --name eksupgrade \
+  --region us-east-1 \
+  --query "cluster.version"
+```
+
+---
+
 ## ## **5. Delete the EKS Cluster**
 
 ```bash
