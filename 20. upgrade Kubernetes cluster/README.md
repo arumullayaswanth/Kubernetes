@@ -93,8 +93,7 @@ eksctl upgrade nodegroup \
   --cluster eksupgrade \
   --name eksupgrade-ng-private \
   --region us-east-1 \
-  --kubernetes-version 1.33 \
-  --approve
+  --kubernetes-version 1.33
 ```
 
 ---
