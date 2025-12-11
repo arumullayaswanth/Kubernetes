@@ -31,7 +31,7 @@ This document provides commands for upgrading:
 * EKS Add-ons
 
 ---
-# **step:1. Upgrade the EKS Control Plane**
+# **Step:1. Upgrade the EKS Control Plane**
 # ## **1. Check Current Cluster and Node Versions (Before Upgrade)**
 
 ```bash
@@ -82,7 +82,7 @@ kubectl version
 ---
 ---
 
-#  **step: 2. Upgrade Node Groups / Worker Nodes / Fargate**
+#  **Step: 2. Upgrade Node Groups / Worker Nodes / Fargate**
 
 # ## **4. Upgrade Managed Node Group**
 
