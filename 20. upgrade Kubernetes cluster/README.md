@@ -1,19 +1,5 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
----------
- **EKS Upgrade Process**
+# **EKS Upgrade Process**
 1. Upgrading the **EKS Control Plane**
 2. Upgrading **Node Groups / Worker Nodes / Fargate**
 3. Upgrading **EKS Add-ons**
@@ -49,8 +35,6 @@ kubectl version
 eksctl get nodegroup --cluster eksupgrade --region us-east-1
 ```
 
----
-
 # ## **2. Upgrade the EKS Control Plane**
 
 You must specify the Kubernetes version you want to upgrade **to**:
@@ -64,8 +48,6 @@ eksctl upgrade cluster \
 ```
 
 Replace **1.33** with the target version you are upgrading **to**.
-
----
 
 # ## **3. Verify Control Plane Upgrade**
 
@@ -96,15 +78,11 @@ eksctl upgrade nodegroup \
   --kubernetes-version 1.33
 ```
 
----
-
 # ## **5. Verify Node Group Upgrade**
 
 ```bash
 kubectl get nodes -o wide
 ```
-
----
 
 # ## **6. (Optional) Roll Nodes to Apply New AMI**
 
@@ -118,8 +96,7 @@ eksctl upgrade nodegroup \
   --force \
   --approve
 ```
-
-
+---
 ### For Self-Managed Worker Nodes (If applicable)
 
 **Drain the node:**
@@ -149,13 +126,13 @@ kubectl uncordon <node-name>
 ---
 ---
 
-# **Step:3. Upgrade All Core EKS Add-ons*
+# **Step:3. Upgrade All Core EKS Add-ons**
 
 Replace **1.32** with your cluster version if needed.
 
 ---
 
-# ## **1. Upgrade Amazon VPC CNI (amazon-vpc-cni)**
+# ## **7. Upgrade Amazon VPC CNI (amazon-vpc-cni)**
 
 ```bash
 eksctl update addon \
@@ -171,7 +148,7 @@ eksctl get addon \
   --cluster eksupgrade \
   --region us-east-1
 ```
-Verify Pod version in the cluster
+#### 1. Verify Pod version in the cluster
 ```bash
 kubectl get ds aws-node -n kube-system -o wide
 ```
@@ -181,10 +158,8 @@ kubectl get pods -n kube-system | grep aws-node
 ```
 ---
 
-# ## **2. Upgrade kube-proxy**
-
-**1. Check current kube-proxy addon version**
-
+# ## **8. Upgrade kube-proxy**
+1. Check current kube-proxy addon version
 ```bash
 eksctl get addon \
   --name kube-proxy \
@@ -198,7 +173,7 @@ This shows:
 * whether an update is available
 
 
-**2. List available versions (optional)**
+#### 2. List available versions (optional)
 
 ```bash
 eksctl utils describe-addon-versions \
@@ -206,7 +181,7 @@ eksctl utils describe-addon-versions \
   --region us-east-1
 ```
 
-**3. Upgrade kube-proxy addon**
+#### 3. Upgrade kube-proxy addon
 
 ```bash
 eksctl update addon \
@@ -215,7 +190,7 @@ eksctl update addon \
   --region us-east-1 \
   --force
 ```
-**4. Verify kube-proxy upgrade**
+#### 4. Verify kube-proxy upgrade
 
 ### Check addon status:
 
@@ -249,22 +224,97 @@ You should see the new version, like:
 ```
 Image: 602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/kube-proxy:v1.x.x
 ```
-
 ---
 
-# ## **3. Upgrade CoreDNS**
+# ## **9. Upgrade CoreDNS**
+#### 1. Check the Current CoreDNS Addon Version
 
 ```bash
-aws eks update-addon \
-  --cluster-name eksupgrade \
-  --addon-name coredns \
-  --region us-east-1 \
-  --resolve-conflicts OVERWRITE
+eksctl get addon \
+  --name coredns \
+  --cluster eksupgrade \
+  --region us-east-1
+```
+
+You will see something like:
+
+```
+NAME      VERSION   STATUS   UPDATE AVAILABLE
+coredns   v1.10.x   ACTIVE   true
 ```
 
 ---
 
-# ## **4. Verify Add-on Upgrade Status**
+#### 2. View Available CoreDNS Versions
+
+```bash
+eksctl utils describe-addon-versions \
+  --name coredns \
+  --region us-east-1
+```
+
+This helps you choose the correct version for your Kubernetes version.
+
+#### 3.  Upgrade CoreDNS Addon
+
+Use this command:
+
+```bash
+eksctl update addon \
+  --name coredns \
+  --cluster eksupgrade \
+  --region us-east-1 \
+  --force
+```
+
+`--force` ensures dependencies are updated if needed.
+
+
+#### ➕ Optional: Update the CoreDNS ConfigMap (if Kubernetes version changed)
+
+If you're upgrading Kubernetes, EKS may require refreshing the CoreDNS ConfigMap:
+
+```bash
+kubectl get configmap coredns -n kube-system -o yaml
+```
+
+Let me know if the config looks outdated—I can generate the corrected version.
+
+
+#### 5. Verify CoreDNS Upgrade
+
+✔ Check addon status
+
+```bash
+eksctl get addon \
+  --name coredns \
+  --cluster eksupgrade \
+  --region us-east-1
+```
+
+✔ Check CoreDNS deployment
+
+```bash
+kubectl get deployment coredns -n kube-system -o wide
+```
+
+You should see:
+
+* `READY` replicas = number of nodes or more
+* updated image version
+
+✔ Check pod health
+
+```bash
+kubectl get pods -n kube-system | grep coredns
+```
+
+All pods should be in **Running** state.
+
+---
+---
+
+# ## **10. Verify Add-on Upgrade Status**
 
 ```bash
 aws eks list-addons --cluster-name eksupgrade --region us-east-1
@@ -284,7 +334,7 @@ aws eks describe-addon \
 
 ---
 
-# ### **5. Upgrade EBS CSI Driver**
+# ### **11. Upgrade EBS CSI Driver**
 
 ```bash
 aws eks update-addon \
@@ -296,7 +346,7 @@ aws eks update-addon \
 
 ---
 
-# ### **6. Upgrade EFS CSI Driver**
+# ### **12. Upgrade EFS CSI Driver**
 
 ```bash
 aws eks update-addon \
@@ -308,7 +358,7 @@ aws eks update-addon \
 
 ---
 
-# ## **7. Check Add-ons via kubectl**
+# ## **13. Check Add-ons via kubectl**
 
 ```bash
 kubectl get pods -n kube-system -o wide
@@ -316,118 +366,8 @@ kubectl get pods -n kube-system -o wide
 
 ---
 
-# 🎉 **DONE — All EKS Add-ons Upgraded**
 
-If you want, I can also give you:
-
-✅ Add-on version compatibility matrix
-✅ Script to automatically upgrade all add-ons
-✅ Full upgrade guide (PDF or markdown)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## ## **3. Upgrade EKS Add-ons**
-
-### **CoreDNS**
-
-```bash
-eksctl utils update-coredns \
-  --cluster eksupgrade \
-  --region us-east-1 \
-  --approve
-```
-
-### **kube-proxy**
-
-```bash
-eksctl utils update-kube-proxy \
-  --cluster eksupgrade \
-  --region us-east-1 \
-  --approve
-```
-
-### **VPC CNI (aws-node)**
-
-```bash
-eksctl utils update-aws-node \
-  --cluster eksupgrade \
-  --region us-east-1 \
-  --approve
-```
-
-### **Cluster Autoscaler (If installed via Helm)**
-
-Get the recommended version first:
-
-```bash
-kubectl get deployment cluster-autoscaler -n kube-system -o yaml | grep image
-```
-
-Upgrade using Helm:
-
-```bash
-helm upgrade cluster-autoscaler \
-  autoscaler/cluster-autoscaler-chart \
-  --namespace kube-system
-```
-
-### **Metrics Server (If using Helm)**
-
-```bash
-helm upgrade metrics-server \
-  metrics-server/metrics-server \
-  --namespace kube-system
-```
-
-# **4. Validate Add-on Versions**
-
-```bash
-kubectl get pods -n kube-system
-```
-
-You should see:
-
-* coredns pods recreated
-* kube-proxy DaemonSet updated
-* aws-node updated
-
-
-# ## **5. Validate the Upgrade**
+# ## **14. Validate the Upgrade**
 
 ### Check node versions:
 
