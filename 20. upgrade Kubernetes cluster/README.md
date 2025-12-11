@@ -1,4 +1,18 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------
  **EKS Upgrade Process**
 1. Upgrading the **EKS Control Plane**
 2. Upgrading **Node Groups / Worker Nodes / Fargate**
@@ -17,7 +31,7 @@ This document provides commands for upgrading:
 * EKS Add-ons
 
 ---
-
+# ## **step:1. Upgrade the EKS Control Plane**
 # ## **1. Check Current Cluster and Node Versions (Before Upgrade)**
 
 ```bash
@@ -63,35 +77,49 @@ aws eks describe-cluster \
 ```
 
 ```bash
-kubectl version --short
+kubectl version
 ```
-
-
 ---
 ---
 
-## ## **2. Upgrade Node Groups / Worker Nodes / Fargate**
+# ## **step: 2. Upgrade Node Groups / Worker Nodes / Fargate**
 
-### List node groups:
+# ## **4. Upgrade Managed Node Group**
+
+Node groups must match the cluster version.
 
 ```bash
-eksctl get nodegroup --cluster eksupgrade --region us-east-1
+eksctl upgrade nodegroup \
+  --cluster eksupgrade \
+  --name eksupgrade-ng-private \
+  --region us-east-1 \
+  --kubernetes-version 1.30 \
+  --approve
 ```
+
+---
+
+# ## **5. Verify Node Group Upgrade**
 
 ```bash
 kubectl get nodes -o wide
 ```
 
-### Upgrade a Managed Node Group:
+---
+
+# ## **6. (Optional) Roll Nodes to Apply New AMI**
+
+If nodes still show old version, force a rolling update:
 
 ```bash
 eksctl upgrade nodegroup \
   --cluster eksupgrade \
+  --name eksupgrade-ng-private \
   --region us-east-1 \
-  --name observability-ng-private \
-  --kubernetes-version 1.31 \
+  --force \
   --approve
 ```
+
 
 ### For Self-Managed Worker Nodes (If applicable)
 
@@ -120,6 +148,8 @@ kubectl uncordon <node-name>
 ```
 
 ---
+---
+
 
 ## ## **3. Upgrade EKS Add-ons**
 
