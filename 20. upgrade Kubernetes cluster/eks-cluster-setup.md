@@ -22,9 +22,11 @@ This document provides a complete set of commands to:
 Open **PowerShell as Administrator**, then run:
 
 ```powershell
-Invoke-WebRequest "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Windows_amd64.zip" -OutFile "eksctl.zip"
-Expand-Archive -Force eksctl.zip -DestinationPath "C:\eksctl"
-setx PATH "$($env:PATH);C:\eksctl"
+Invoke-WebRequest "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Windows_amd64.zip" -OutFile "eksctl.zip"
+Expand-Archive -Path "eksctl.zip" -DestinationPath "eksctl"
+Move-Item -Path "eksctl\eksctl.exe" -Destination "C:\Program Files\eksctl\eksctl.exe"
+$env:Path += ";C:\Program Files\eksctl"
+
 ```
 
 Close PowerShell → reopen → verify:
