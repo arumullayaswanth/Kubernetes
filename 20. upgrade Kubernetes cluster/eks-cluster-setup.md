@@ -1,4 +1,9 @@
 
+
+
+
+
+
 # **EKS Cluster Setup, NodeGroup Creation & Cleanup Guide**
 
 This document provides a complete set of commands to:
@@ -10,6 +15,59 @@ This document provides a complete set of commands to:
 5. Delete the cluster
 
 ---
+
+
+# ⭐ STEP 1 — Install eksctl (Windows)
+
+Open **PowerShell as Administrator**, then run:
+
+```powershell
+Invoke-WebRequest "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Windows_amd64.zip" -OutFile "eksctl.zip"
+Expand-Archive -Force eksctl.zip -DestinationPath "C:\eksctl"
+setx PATH "$($env:PATH);C:\eksctl"
+```
+
+Close PowerShell → reopen → verify:
+
+```powershell
+eksctl version
+```
+
+---
+
+# ⭐ STEP 2 — Install kubectl (Windows)
+
+Still in PowerShell:
+
+```powershell
+curl.exe -LO "https://dl.k8s.io/release/v1.30.0/bin/windows/amd64/kubectl.exe"
+mkdir "C:\kubectl"
+mv kubectl.exe "C:\kubectl\kubectl.exe"
+setx PATH "$($env:PATH);C:\kubectl"
+```
+
+Close & reopen PowerShell → verify:
+
+```powershell
+kubectl version --client --output=yaml
+```
+
+---
+
+# ⭐ STEP 3 — Install AWS CLI
+
+```powershell
+msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
+```
+
+Verify:
+
+```powershell
+aws --version
+```
+
+---
+
 
 ## ## **1. Create EKS Cluster (Without Node Group)**
 
