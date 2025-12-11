@@ -59,7 +59,7 @@ You must specify the Kubernetes version you want to upgrade **to**:
 eksctl upgrade cluster \
   --name eksupgrade \
   --region us-east-1 \
-  --version 1.30 \
+  --version 1.32 \
   --approve
 ```
 
@@ -93,7 +93,7 @@ eksctl upgrade nodegroup \
   --cluster eksupgrade \
   --name eksupgrade-ng-private \
   --region us-east-1 \
-  --kubernetes-version 1.30 \
+  --kubernetes-version 1.32 \
   --approve
 ```
 
