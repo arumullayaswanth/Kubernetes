@@ -63,7 +63,7 @@ eksctl upgrade cluster \
   --approve
 ```
 
-Replace **1.30** with the target version you are upgrading **to**.
+Replace **1.33** with the target version you are upgrading **to**.
 
 ---
 
