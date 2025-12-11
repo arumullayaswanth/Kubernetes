@@ -167,7 +167,7 @@ kubectl cluster-info
 #### **4. Check Kubernetes Version**
 
 ```bash
-kubectl version --short
+kubectl version 
 ```
 
 #### **5. Get EKS Cluster Version (AWS CLI)**
