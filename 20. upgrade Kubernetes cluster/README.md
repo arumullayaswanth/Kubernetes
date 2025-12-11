@@ -149,6 +149,217 @@ kubectl uncordon <node-name>
 ---
 ---
 
+# **Step:3. Upgrade All Core EKS Add-ons*
+
+Replace **1.32** with your cluster version if needed.
+
+---
+
+# ## **1. Upgrade Amazon VPC CNI (amazon-vpc-cni)**
+
+```bash
+eksctl update addon \
+  --name vpc-cni \
+  --cluster eksupgrade \
+  --region us-east-1 \
+  --force
+
+```
+```bash
+eksctl get addon \
+  --name vpc-cni \
+  --cluster eksupgrade \
+  --region us-east-1
+```
+Verify Pod version in the cluster
+```bash
+kubectl get ds aws-node -n kube-system -o wide
+```
+Check pod health
+```bash
+kubectl get pods -n kube-system | grep aws-node
+```
+---
+
+# ## **2. Upgrade kube-proxy**
+
+**1. Check current kube-proxy addon version**
+
+```bash
+eksctl get addon \
+  --name kube-proxy \
+  --cluster eksupgrade \
+  --region us-east-1
+```
+
+This shows:
+
+* current version
+* whether an update is available
+
+
+**2. List available versions (optional)**
+
+```bash
+eksctl utils describe-addon-versions \
+  --name kube-proxy \
+  --region us-east-1
+```
+
+**3. Upgrade kube-proxy addon**
+
+```bash
+eksctl update addon \
+  --name kube-proxy \
+  --cluster eksupgrade \
+  --region us-east-1 \
+  --force
+```
+**4. Verify kube-proxy upgrade**
+
+### Check addon status:
+
+```bash
+eksctl get addon \
+  --name kube-proxy \
+  --cluster eksupgrade \
+  --region us-east-1
+```
+
+Ensure:
+
+```
+STATUS = ACTIVE
+```
+
+### Check DaemonSet version:
+
+```bash
+kubectl get ds kube-proxy -n kube-system -o wide
+```
+
+Check the image version:
+
+```bash
+kubectl describe ds kube-proxy -n kube-system | grep Image:
+```
+
+You should see the new version, like:
+
+```
+Image: 602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/kube-proxy:v1.x.x
+```
+
+---
+
+# ## **3. Upgrade CoreDNS**
+
+```bash
+aws eks update-addon \
+  --cluster-name eksupgrade \
+  --addon-name coredns \
+  --region us-east-1 \
+  --resolve-conflicts OVERWRITE
+```
+
+---
+
+# ## **4. Verify Add-on Upgrade Status**
+
+```bash
+aws eks list-addons --cluster-name eksupgrade --region us-east-1
+```
+
+```bash
+aws eks describe-addon \
+  --cluster-name eksupgrade \
+  --addon-name coredns \
+  --region us-east-1 \
+  --query "addon.addonVersion"
+```
+
+---
+
+# ## ⭐ OPTIONAL Add-ons
+
+---
+
+# ### **5. Upgrade EBS CSI Driver**
+
+```bash
+aws eks update-addon \
+  --cluster-name eksupgrade \
+  --addon-name aws-ebs-csi-driver \
+  --region us-east-1 \
+  --resolve-conflicts OVERWRITE
+```
+
+---
+
+# ### **6. Upgrade EFS CSI Driver**
+
+```bash
+aws eks update-addon \
+  --cluster-name eksupgrade \
+  --addon-name aws-efs-csi-driver \
+  --region us-east-1 \
+  --resolve-conflicts OVERWRITE
+```
+
+---
+
+# ## **7. Check Add-ons via kubectl**
+
+```bash
+kubectl get pods -n kube-system -o wide
+```
+
+---
+
+# 🎉 **DONE — All EKS Add-ons Upgraded**
+
+If you want, I can also give you:
+
+✅ Add-on version compatibility matrix
+✅ Script to automatically upgrade all add-ons
+✅ Full upgrade guide (PDF or markdown)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## ## **3. Upgrade EKS Add-ons**
 
