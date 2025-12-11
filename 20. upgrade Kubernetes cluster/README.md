@@ -1,3 +1,4 @@
+
  **EKS Upgrade Process**
 1. Upgrading the **EKS Control Plane**
 2. Upgrading **Node Groups / Worker Nodes / Fargate**
@@ -17,18 +18,42 @@ This document provides commands for upgrading:
 
 ---
 
-## ## **1. Upgrade the EKS Control Plane**
+# ## **1. Check Current Cluster and Node Versions (Before Upgrade)**
 
-You can upgrade the control plane using `eksctl`:
+```bash
+aws eks describe-cluster \
+  --name eksupgrade \
+  --region us-east-1 \
+  --query "cluster.version"
+```
+
+```bash
+kubectl version
+```
+
+```bash
+eksctl get nodegroup --cluster eksupgrade --region us-east-1
+```
+
+---
+
+# ## **2. Upgrade the EKS Control Plane**
+
+You must specify the Kubernetes version you want to upgrade **to**:
 
 ```bash
 eksctl upgrade cluster \
   --name eksupgrade \
   --region us-east-1 \
+  --version 1.30 \
   --approve
 ```
 
-### Check cluster version:
+Replace **1.30** with the target version you are upgrading **to**.
+
+---
+
+# ## **3. Verify Control Plane Upgrade**
 
 ```bash
 aws eks describe-cluster \
@@ -41,6 +66,8 @@ aws eks describe-cluster \
 kubectl version --short
 ```
 
+
+---
 ---
 
 ## ## **2. Upgrade Node Groups / Worker Nodes / Fargate**
