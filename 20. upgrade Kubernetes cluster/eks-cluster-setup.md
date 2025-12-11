@@ -102,7 +102,7 @@ OIDC is required for IAM Roles for Service Accounts (IRSA).
 ```bash
 eksctl create nodegroup --cluster eksupgrade \
                         --region us-east-1 \
-                        --name observability-ng-private \
+                        --name eksupgrade-ng-private \
                         --node-type t3.medium \
                         --nodes-min 2 \
                         --nodes-max 3 \
