@@ -61,7 +61,7 @@ kubectl get nodes -o wide
 eksctl upgrade nodegroup \
   --cluster eksupgrade \
   --region us-east-1 \
-  --name observability-ng-private \
+  --name eksupgrade-ng-private \
   --kubernetes-version 1.31 \
   --approve
 ```
