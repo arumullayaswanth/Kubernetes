@@ -187,13 +187,6 @@ kubectl delete pod crashloop-pod
 kubectl delete pod pvc-missing-pod
 kubectl delete service bad-service
 ```
-
----
-
-## 13. Demo Script Line (For YouTube / Interview)
-
-> "K8sGPT continuously analyzes my Kubernetes cluster, detects runtime and configuration errors, and uses AI to explain root causes and recommend human-readable fixes."
-
 ---
 
 ## 14. Useful Commands Cheat Sheet
