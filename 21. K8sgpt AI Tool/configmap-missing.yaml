@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-missing-pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      envFrom:
+        - configMapRef:
+            name: missing-configmap   # ❌ ConfigMap not found
