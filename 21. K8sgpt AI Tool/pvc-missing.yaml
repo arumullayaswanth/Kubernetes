@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-missing-pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      volumeMounts:
+        - name: data-volume
+          mountPath: /data
+  volumes:
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: missing-pvc   # ❌ PVC not found
