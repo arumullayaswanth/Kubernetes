@@ -1,10 +1,3 @@
-Perfect 👍
-Here is a **complete end-to-end K8sGPT command guide** in **Markdown format**.
-You can save this as a file:
-
-```
-k8sgpt-end-to-end-guide.md
-```
 
 ---
 
@@ -89,13 +82,13 @@ k8sgpt auth default openai
 ## 5. Deploy Error Test Manifests
 
 ```bash
-kubectl apply -f 01-imagepull-error.yaml
-kubectl apply -f 02-configmap-missing.yaml
-kubectl apply -f 03-secret-missing.yaml
-kubectl apply -f 04-invalid-resources.yaml
-kubectl apply -f 05-crashloop.yaml
-kubectl apply -f 06-pvc-missing.yaml
-kubectl apply -f 07-service-selector-error.yaml
+kubectl apply -f imagepull-error.yaml
+kubectl apply -f configmap-missing.yaml
+kubectl apply -f secret-missing.yaml
+kubectl apply -f invalid-resources.yaml
+kubectl apply -f crashloop.yaml
+kubectl apply -f pvc-missing.yaml
+kubectl apply -f service-selector-error.yaml
 ```
 
 ---
