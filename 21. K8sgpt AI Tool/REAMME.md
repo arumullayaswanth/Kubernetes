@@ -1,3 +1,4 @@
+https://platform.openai.com/docs/overview
 
 # K8sGPT End-to-End Command Guide
 
