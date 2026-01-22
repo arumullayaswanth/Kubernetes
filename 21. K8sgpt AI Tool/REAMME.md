@@ -1,9 +1,4 @@
 
----
-
-## 📄 k8sgpt-end-to-end-guide.md
-
-````md
 # K8sGPT End-to-End Command Guide
 
 This document provides a complete end-to-end workflow for installing, configuring, and using K8sGPT to analyze Kubernetes cluster errors.
