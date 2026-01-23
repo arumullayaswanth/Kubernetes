@@ -1,4 +1,5 @@
 https://platform.openai.com/docs/overview
+https://platform.openai.com/settings/organization/api-keys
 
 # K8sGPT End-to-End Command Guide
 
