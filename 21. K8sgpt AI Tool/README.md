@@ -86,7 +86,7 @@ k8sgpt auth list
 ```
 #### Step 4 — Test
 ```bash
-k8sgpt analyze --explain
+k8sgpt analyze
 ```
 ---
 
@@ -156,6 +156,9 @@ k8sgpt analyze --output yaml > k8sgpt-report.yaml
 ## 10. Fix Issues (Manual + Guided by K8sGPT)
 
 Examples:
+```bash
+k8sgpt analyze --filter Pod
+```
 
 ### Fix ImagePullBackOff
 
