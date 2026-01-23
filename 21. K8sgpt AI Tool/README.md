@@ -61,22 +61,28 @@ helm install k8sgpt-operator k8sgpt/k8sgpt-operator \
 
 ### List Available Backends
 
+#### Step 1 — Remove Existing OpenAI Backend
+```bash
+k8sgpt auth remove -b openai
+```
+#### Step 2 — Add OpenAI Again (Interactive)
+```bash
+k8sgpt auth add -b openai
+```
+It will prompt:
+```bash
+Enter OpenAI API Key:
+```
+➡️ Paste your real OpenAI key (sk-...)
+
+#### Step 3 — Verify
 ```bash
 k8sgpt auth list
 ```
-
-### Add OpenAI Backend (Example)
-
+#### Step 4 — Test
 ```bash
-k8sgpt auth add openai \
-  --password YOUR_OPENAI_API_KEY
-
+k8sgpt analyze --explain
 ```
-### Verify Auth
-```bash
-k8sgpt auth list
-```
-
 ---
 
 ## 5. Deploy Error Test Manifests
