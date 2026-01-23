@@ -62,6 +62,10 @@ helm install k8sgpt-operator k8sgpt/k8sgpt-operator \
 
 ### List Available Backends
 
+```bash
+k8sgpt auth list
+```
+
 #### Step 1 — Remove Existing OpenAI Backend
 ```bash
 k8sgpt auth remove -b openai
