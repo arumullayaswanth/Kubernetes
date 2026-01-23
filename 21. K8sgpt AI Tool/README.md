@@ -42,6 +42,11 @@ k8sgpt version
 ## 3. Install K8sGPT Operator (Optional but Recommended)
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+```bash
 helm repo add k8sgpt https://charts.k8sgpt.ai
 helm repo update
 
