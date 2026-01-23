@@ -69,13 +69,12 @@ k8sgpt auth list
 
 ```bash
 k8sgpt auth add openai \
-  --api-key YOUR_OPENAI_API_KEY
+  --password YOUR_OPENAI_API_KEY
+
 ```
-
-### Set Default Backend
-
+### Verify Auth
 ```bash
-k8sgpt auth default openai
+k8sgpt auth list
 ```
 
 ---
