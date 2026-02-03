@@ -18,13 +18,11 @@
 
 ---
 
-![Image](https://docs.aws.amazon.com/images/architecture-diagrams/latest/modernize-applications-with-microservices-using-amazon-eks/images/modernize-applications-with-microservices-using-amazon-eks.png)
 
-![Image](https://miro.medium.com/1%2ASBrydSv6CEhNDVwouxCi5A.jpeg)
 
 ![Image](https://docs.aws.amazon.com/images/prescriptive-guidance/latest/patterns/images/pattern-img/1dbd3db8-5819-4f30-bebd-a144a2075fcd/images/55652eb2-2e11-4b14-9ed4-0cdcf55cc3e6.png)
 
-![Image](https://miro.medium.com/1%2AbV22TmqCnX_JNmOiz_hjMQ.jpeg)
+
 
 
 We will:
