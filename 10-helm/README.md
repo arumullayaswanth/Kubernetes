@@ -166,11 +166,30 @@ Find **containers:** section
 and **Replace only this part** 👇
 
 ```yaml
-containers:
-  - name: cart
-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-    imagePullPolicy: {{ .Values.image.pullPolicy }}
-    command: {{ .Values.command }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cart.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "cart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cart.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "cart.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: cart
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: {{ .Values.command }}
+
 ```
 
 Save & exit
@@ -226,11 +245,30 @@ nano checkout/templates/deployment.yaml
 Replace **containers** section with:
 
 ```yaml
-containers:
-  - name: checkout
-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-    imagePullPolicy: {{ .Values.image.pullPolicy }}
-    command: {{ .Values.command }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "checkout.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "checkout.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "checkout.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "checkout.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: checkout
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: {{ .Values.command }}
+
 ```
 
 Save & exit
