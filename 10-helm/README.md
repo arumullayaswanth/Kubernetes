@@ -330,7 +330,7 @@ https://YOUR_USERNAME.github.io/ecommerce-helm-repo/
 ## ➕ Step 11.1: Add Helm Repo
 
 ```bash
-helm repo add ecommerce https://YOUR_USERNAME.github.io/ecommerce-helm-repo/
+helm repo add ecommerce https://arumullayaswanth.github.io/ecommerce-helm-repo/
 helm repo update
 ```
 
