@@ -97,3 +97,12 @@ eksctl-my-cluster-nodegroup-<something>
   eksctl delete cluster --name my-cluster --region us-east-1
 ```
 ---
+
+# Install Helm
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+Check:
+```bash
+helm version
+```
