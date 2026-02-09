@@ -15,8 +15,8 @@ Before installing Kagent, make sure you have:
   - Minikube
   - Kind
   - EKS / GKE / AKS
-- `kubectl` installed and configured
-- Helm v3 installed
+- `kubectl` installed and configured : for interacting with your cluster.
+- Helm v3 installed : for installing the Kagent chart.
 - Internet access from the cluster
 
 Verify tools:
