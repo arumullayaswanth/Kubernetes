@@ -35,160 +35,145 @@ Check if your cluster is running:
 ```bash
 kubectl get nodes
 ```
-
+Helm
+```bash
+helm version
+```
 Expected output:
 
 * Nodes should be in **Ready** state
 
 ---
 
-## 📁 Step 2: Create a Namespace for Kagent
+## 📁 Step 2: Installing Kagent
 
-Create a dedicated namespace:
+Kagent is installed using Helm charts.
 
+### Step 2.1: Install Kagent CRDs
+CRDs are special Kubernetes definitions required by Kagent.
+Run this command:
 ```bash
-kubectl create namespace kagent
+helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
+--namespace kagent \
+--create-namespace
 ```
+✅ This will:
+    - Create a namespace called kagent
+    - Install required CRDs
 
 Verify:
-
 ```bash
-kubectl get namespaces
+kubectl get crds | grep kagent
 ```
-
 ---
 
-## 📁 Step 3: Add Kagent Helm Repository
-
-Add the official Kagent Helm repository:
-
+### Step 2.2: Set OpenAI API Key (Temporary)
+Kagent expects an OpenAI key by default.
+*Option A: If you have OpenAI key*
 ```bash
-helm repo add kagent https://kagent.dev/helm
+export OPENAI_API_KEY="your-openai-api-key"
 ```
-
-Update Helm repositories:
-
+*Option B: If you DON’T have OpenAI key*
+Just use a dummy value (we will use Gemini later):
 ```bash
-helm repo update
+export OPENAI_API_KEY="dummy-key"
 ```
-
-Verify repo:
-
-```bash
-helm search repo kagent
-```
-
 ---
+## 📁 Step 3: Install Kagent
 
-## 📁 Step 4: Create Values File (Optional but Recommended)
-
-Create a custom values file:
-
-```bash
-vi values.yaml
-```
-
-Example `values.yaml`:
-
-```yaml
-replicaCount: 1
-
-image:
-  repository: kagent/kagent
-  tag: latest
-  pullPolicy: IfNotPresent
-
-service:
-  type: ClusterIP
-  port: 8080
-
-resources:
-  limits:
-    cpu: "500m"
-    memory: "512Mi"
-  requests:
-    cpu: "250m"
-    memory: "256Mi"
-
-env:
-  LOG_LEVEL: info
-```
-
-Save and exit.
-
----
-
-## 📁 Step 5: Install Kagent Using Helm
-
-Install Kagent into the cluster:
+Now install the main Kagent components.
 
 ```bash
-helm install kagent kagent/kagent \
-  --namespace kagent \
-  -f values.yaml
+helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
+--namespace kagent \
+--set providers.openAI.apiKey=$OPENAI_API_KEY
 ```
-
-If you don’t want a custom file, you can install directly:
-
-```bash
-helm install kagent kagent/kagent --namespace kagent
-```
-
----
-
-## 📁 Step 6: Verify Installation
-
-Check pods:
-
+**Check pods:**
 ```bash
 kubectl get pods -n kagent
 ```
-
-Expected:
-
-* Pod status should be **Running**
-
-Check services:
-
-```bash
-kubectl get svc -n kagent
-```
+⚠️ If you used a dummy key, some pods may not work yet.
+That’s expected 👍
 
 ---
+# 🤖 Using Gemini with Kagent
+Now we will configure Gemini as our AI model.
 
-## 📁 Step 7: Check Kagent Logs
-
-To verify Kagent is working:
-
+## 📁 Step 4: Create Kubernetes Secret for Gemini
+- First, get your Gemini API key from Google AI Studio.
+- Now create a secret:
 ```bash
-kubectl logs -n kagent deployment/kagent
+kubectl create secret generic kagent-gemini \
+-n kagent \
+--from-literal=GOOGLE_API_KEY="<YOUR_GEMINI_API_KEY>"
 ```
+✅ This keeps your API key safe inside Kubernetes.
 
-You should see logs showing:
-
-* Agent startup
-* Cluster connection
-* Controller initialization
-
+Verify:
+```bash
+kubectl get secret kagent-gemini -n kagent
+```
 ---
 
-## 📁 Step 8: Access Kagent UI (If Enabled)
+## 📁 Step 5: Create Gemini ModelConfig
+- Now we tell Kagent how to use Gemini.
+- 📄 Create the file
+```bash
+vim gemini-model.yaml
+```
+- Paste the content into the file
+```bash
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: gemini-model-config
+  namespace: kagent
+spec:
+  apiKeySecret: kagent-gemini
+  apiKeySecretKey: GOOGLE_API_KEY
+  model: gemini-2.5-pro
+  provider: Gemini
+  gemini: {}
+```
+- Apply it:
+```bash
+kubectl apply -f gemini-model.yaml
+```
+-🎉 Expected Output:
+```bash
+modelconfig.kagent.dev/gemini-model-config created
+```
+- Verify ModelConfig is created
+```bash
+kubectl get modelconfig -n kagent
+```
 
-Port-forward the service:
 
+
+## 📁 Step 6: Check All Pods
+- Make sure everything is running:
+```bash
+kubectl get pods -n kagent
+```
+- ✅ All pods should be in Running state.
+  
+---
+
+## 📁 Step 7: 🌐 Access Kagent UI
+- Now let’s open the Kagent dashboard.
+- Port-forward the service:
 ```bash
 kubectl port-forward -n kagent svc/kagent 8080:8080
 ```
-
-Open browser:
-
+- Open browser:
 ```
 http://localhost:8080
 ```
+🎉 Boom!
+You can now explore Kagent UI and interact with your Kubernetes cluster using Gemini AI.
 
----
 
-## 📁 Step 9: Uninstall Kagent (Optional)
+## 📁 Step 8: Uninstall Kagent (Optional)
 
 If you want to remove Kagent:
 
@@ -204,7 +189,7 @@ kubectl delete namespace kagent
 
 ---
 
-## 🛠 Troubleshooting
+## 📁 Step 8: 🛠 Troubleshooting
 
 * Pod not running:
 
@@ -220,35 +205,92 @@ kubectl delete namespace kagent
   * Ensure cluster-admin or required RBAC permissions
 
 ---
+## 📁 Step 9 : 🌐 Access Kagent UI via LoadBalancer
+- Right now, we are using port-forward.
+- That means 👉 “Only my laptop can see Kagent.”
+- Using a LoadBalancer means 👉
+- 🧑‍🤝‍🧑 “Anyone (with the IP) can open Kagent UI in the browser.”
 
-## 📚 Next Steps
+| Kubernetes Type             | LoadBalancer Works Automatically? |
+| --------------------------- | --------------------------------- |
+| EKS / GKE / AKS             | ✅ YES                             |
+| Cloud K8s (AWS, GCP, Azure) | ✅ YES                             |
+| Minikube                    | ❌ NO (needs extra step)           |
+| Kind                        | ❌ NO                              |
 
-* Connect Kagent with observability tools
-* Enable AI-based incident analysis
-* Integrate with CI/CD pipelines
-* Customize policies and automation rules
+### Cloud Kubernetes (EKS / GKE / AKS)
+- Step 9.1: Check Kagent UI Service
+```bash
+kubectl get svc -n kagent
+```
+- You’ll see something like:
+```bash
+kagent-ui   ClusterIP   10.96.x.x   <none>   80/TCP
+```
+- Step 9.2: Edit the Service
+```bash
+kubectl edit svc kagent-ui -n kagent
+```
+- Step 9.3: Change Service Type
+Find this:
+```yaml
+spec:
+  type: ClusterIP
+```
+Change it to:
+```yaml
+spec:
+  type: LoadBalancer
+```
+Save and exit.
+
+- Step 9.4: Wait for External IP
+Run:
+```bash
+kubectl get svc kagent-ui -n kagent
+```
+After some time (1–3 mins):
+```bash
+NAME        TYPE           EXTERNAL-IP
+kagent-ui   LoadBalancer   35.xxx.xxx.xxx
+```
+
+- Step 9.5: Access in Browser 🌍
+Open:
+```bash
+http://<EXTERNAL-IP>
+```
+🎉 BOOM! Kagent UI is live publicly.
 
 ---
 
-## ⭐ Contribute
+## 📁 Step 10 : NGINX application Deployment 
+```less
 
-If you like Kagent:
+Deploy an NGINX application in my Kubernetes cluster and give me a browser-accessible URL.
 
-* Star the repository ⭐
-* Raise issues 🐛
-* Submit PRs 🚀
-
-Happy Kubernetes Automation! 🎉
+Requirements:
+- Use the official nginx image
+- Create a Deployment with 1 replica
+- Expose the application using a NodePort service
+- Use port 80
+- After deployment, run kubectl commands to fetch the Node IP and NodePort
+- Print the final access URL in this format:
+  http://<NODE_IP>:<NODE_PORT>
+- Make sure the URL is directly usable in a web browser
 
 ```
-
----
-
-If you want next:
-- 🔹 **EKS-specific installation**
-- 🔹 **RBAC deep dive**
-- 🔹 **Kagent architecture diagram**
-- 🔹 **YouTube video script from this README**
-
-Just tell me 👌
+Example output you’ll get:
+```bash
+NGINX is accessible at:
+http://192.168.49.2:32080
 ```
+You can directly paste that link into your browser 🌐
+
+
+
+
+
+
+
+
