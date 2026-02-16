@@ -55,7 +55,7 @@ eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
   --nodegroup-name my-nodegroup \
-  --node-type t2.small \
+  --node-type t2.large \
   --nodes 2 \
   --nodes-min 2 \
   --nodes-max 10 \
