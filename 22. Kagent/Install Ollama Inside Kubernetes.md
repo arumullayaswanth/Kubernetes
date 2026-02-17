@@ -107,6 +107,29 @@ Wait until:
 ollama-xxxx    Running
 ```
 
+- 🚀 If You Want To Check Image Pull Progress
+Run:
+```bash
+kubectl describe pod ollama-6747f4c5f4-k7kbg | grep -A5 Events
+```
+If it changes to:
+```bash
+Pulled
+Created
+Started
+```
+Then it's done.
+
+
+```bash
+kubectl get pods
+```
+```
+ollama-xxxx    Running
+```
+
+
+
 ---
 
 # 🚀 STEP 2 — Download Model Inside Ollama Pod
