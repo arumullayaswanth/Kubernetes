@@ -147,6 +147,7 @@ vim openai-model.yaml
 ```
 
 ```yaml
+
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
@@ -155,9 +156,13 @@ metadata:
 spec:
   apiKeySecret: kagent-openai
   apiKeySecretKey: OPENAI_API_KEY
+  # "gpt-4o-mini" is the correct ID for the cost-efficient model.
+  # Use "gpt-4o" if you need higher reasoning capabilities.
   model: gpt-4o-mini
   provider: OpenAI
-  openai: {}
+  openai: {} 
+
+
 ```
 
 Apply:
@@ -193,9 +198,10 @@ metadata:
 spec:
   apiKeySecret: kagent-gemini
   apiKeySecretKey: GOOGLE_API_KEY
-  model: gemini-1.5-flash
+  model: gemini-3-flash-preview
   provider: Gemini
   gemini: {}
+
 ```
 
 Apply:
