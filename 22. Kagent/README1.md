@@ -1,16 +1,4 @@
-Perfect 🔥 this is what I like — clean documentation mindset.
 
-I will now give you a **production-ready, end-to-end GitHub documentation** that supports:
-
-1️⃣ OpenAI
-2️⃣ Gemini
-3️⃣ Local Model (Ollama)
-
-Anyone can clone your repo and follow it step-by-step and it will work.
-
-I’m restructuring slightly for clarity and correctness (Helm-compatible, no manual hacks).
-
----
 
 # 🚀 Kagent Installation Guide (Kubernetes)
 
