@@ -171,7 +171,7 @@ metadata:
 spec:
   apiKeySecret: kagent-gemini
   apiKeySecretKey: GOOGLE_API_KEY
-  model: gemini-2.0-flash
+  model: gemini-3-flash-preview
   provider: Gemini
   gemini: {}
 ```
