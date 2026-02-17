@@ -100,7 +100,7 @@ Check:
 ```bash
 kubectl get pods
 ```
-
+- Wait 5 mins And then cheque it
 Wait until:
 
 ```
