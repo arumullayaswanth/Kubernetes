@@ -134,20 +134,20 @@ ollama-xxxx    Running
 
 ---
 
-# STEP 4 — Test Internal Connection
+## STEP 4 — Test Internal Connection
 - From kagent namespace:
 ```bash
 kubectl exec -it -n kagent deploy/kagent-controller -- curl http://ollama:11434
 ```
 - If it returns something → networking OK.
 
-# STEP 5 — Restart kagent Controller
+## STEP 5 — Restart kagent Controller
 ```bash
 kubectl rollout restart deployment kagent-controller -n kagent
 ```
 Wait until all pods Running again.
 
-# Now Refresh UI
+## Now Refresh UI
 
 Go to kagent UI → Create Agent.
 
