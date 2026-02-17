@@ -221,6 +221,7 @@ metadata:
   name: ollama-pvc
   namespace: kagent
 spec:
+  storageClassName: gp3
   accessModes:
     - ReadWriteOnce
   resources:
@@ -248,6 +249,13 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 11434
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
           volumeMounts:
             - name: ollama-data
               mountPath: /root/.ollama
@@ -268,6 +276,7 @@ spec:
     - port: 11434
       targetPort: 11434
   type: ClusterIP
+
 ```
 
 Apply:
