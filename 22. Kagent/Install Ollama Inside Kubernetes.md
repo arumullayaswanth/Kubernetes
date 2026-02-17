@@ -50,6 +50,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ollama
+  namespace: kagent
 spec:
   replicas: 1
   selector:
@@ -76,6 +77,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ollama
+  namespace: kagent
 spec:
   selector:
     app: ollama
@@ -83,6 +85,7 @@ spec:
     - port: 11434
       targetPort: 11434
   type: ClusterIP
+
 ```
 
 Save and exit.
@@ -98,7 +101,7 @@ kubectl apply -f ollama-deployment.yaml
 Check:
 
 ```bash
-kubectl get pods
+kubectl get pods -n kagent
 ```
 - Wait 5 mins And then cheque it
 Wait until:
@@ -129,41 +132,36 @@ ollama-xxxx    Running
 ```
 
 
-
 ---
 
-# 🚀 STEP 2 — Download Model Inside Ollama Pod
-
-Enter pod:
-
+# STEP 4 — Test Internal Connection
+- From kagent namespace:
 ```bash
-kubectl exec -it deploy/ollama -- bash
+kubectl exec -it -n kagent deploy/kagent-controller -- curl http://ollama:11434
 ```
+- If it returns something → networking OK.
 
-Now pull model:
-
+# STEP 5 — Restart kagent Controller
 ```bash
-ollama pull llama3
+kubectl rollout restart deployment kagent-controller -n kagent
 ```
+Wait until all pods Running again.
 
-OR smaller (better for EC2 without GPU):
+# Now Refresh UI
 
+Go to kagent UI → Create Agent.
+
+Now you should see:
 ```bash
-ollama pull phi3
+Local / Ollama
 ```
-
-⚠️ If your EC2 has no GPU and small RAM:
-Use `phi3` (lightweight)
-
-Exit pod:
-
-```bash
-exit
-```
-
+---
 ---
 
-# 🚀 STEP 3 — Test Ollama From Cluster
+# Leave it everything This is everything Backup plan
+
+
+# 🚀 STEP 1 — Test Ollama From Cluster
 
 Run:
 
@@ -179,9 +177,8 @@ hello
 
 If it responds → ✅ Ollama working
 
----
 
-# 🚀 STEP 4 — Configure kagent To Use Ollama
+# 🚀 STEP 2 — Configure kagent To Use Ollama
 
 Now we must tell kagent:
 
@@ -206,8 +203,6 @@ Look for something like:
 kagent-config
 ```
 
----
-
 ## 🟢 Update Environment Variables
 
 Edit kagent deployment:
@@ -230,9 +225,8 @@ env:
 
 Save and exit.
 
----
 
-# 🚀 STEP 5 — Restart kagent
+# 🚀 STEP 3 — Restart kagent
 
 ```bash
 kubectl rollout restart deployment my-first-k8s-agent
