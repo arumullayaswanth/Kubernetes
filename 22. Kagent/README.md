@@ -166,12 +166,12 @@ Paste the following content:
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
-  name: gemini-model-config
+  name: gemini-model
   namespace: kagent
 spec:
   apiKeySecret: kagent-gemini
   apiKeySecretKey: GOOGLE_API_KEY
-  model: gemini-2.5-pro
+  model: gemini-2.0-flash
   provider: Gemini
   gemini: {}
 ```
