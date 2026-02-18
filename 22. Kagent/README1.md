@@ -333,17 +333,56 @@ kubectl get pods -n kagent
 
 # 📁 Access Kagent UI
 
-Port forward:
+
+### Option A: Using Port-Forward (Local Access)
+
+Forward the Kagent service to your local machine:
 
 ```bash
 kubectl port-forward -n kagent svc/kagent 8080:8080
 ```
 
-Open:
+Open your browser and navigate to:
 
 ```
 http://localhost:8080
 ```
+
+### Option B: Using LoadBalancer (Public Access - Cloud Only)
+
+This works on EKS, GKE, AKS, or any cloud Kubernetes cluster.
+
+Edit the Kagent UI service:
+
+```bash
+kubectl edit svc kagent-ui -n kagent
+```
+
+Change the service type from `ClusterIP` to `LoadBalancer`:
+
+Find this:
+```yaml
+spec:
+  type: ClusterIP
+```
+Change it to:
+```yaml
+spec:
+  type: LoadBalancer
+```
+
+Save and exit. Wait for the external IP:
+
+```bash
+kubectl get svc kagent-ui -n kagent -w
+```
+
+Once you see an EXTERNAL-IP, access Kagent at:
+
+```
+http://<EXTERNAL-IP>
+```
+
 
 You will now see selectable models:
 
