@@ -170,6 +170,13 @@ Apply:
 ```bash
 kubectl apply -f openai-model.yaml
 ```
+```bash
+kubectl get secrets -n kagent
+```
+You’ll see:
+```bash
+kagent-openai
+```
 
 ---
 
