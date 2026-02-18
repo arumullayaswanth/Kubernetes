@@ -54,6 +54,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: gp2
   resources:
     requests:
       storage: 20Gi
@@ -110,7 +111,14 @@ Save and exit.
 ```bash
 kubectl apply -f ollama-deployment.yaml
 ```
-
+- Watch PVC
+````bash
+kubectl get pvc -n kagent -w
+```
+Now it should go:
+```bash
+Pending → Bound
+```
 Check:
 
 ```bash
