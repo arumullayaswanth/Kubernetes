@@ -1,37 +1,57 @@
 
-* ✅ AWS EC2
-* ✅ Kubernetes cluster
-* ✅ kagent deployed
-* ❌ External API quota issue
-* 🎯 Now you want → **Fully Local LLM using Ollama**
+# ❌ External API Quota Issue
 
-This is the BEST decision. No 429 errors. No billing stress.
+# 🎯 Solution → Fully Local LLM using Ollama
+
+If you see errors like:
+
+```
+429 - insufficient_quota
+```
+
+That means:
+
+* OpenAI quota finished
+* Billing issue
+* API limits reached
+
+Instead of depending on external APIs…
+
+👉 We switch to **Fully Local LLM using Ollama**
+
+### Why This Is Better
+
+* ✅ No 429 errors
+* ✅ No billing stress
+* ✅ No internet dependency
+* ✅ Fully private
+* ✅ Runs inside your cluster
 
 ---
 
 # 🏗️ Architecture We Will Build
 
 ```
-Kubernetes (EKS or self-managed)
+Kubernetes (EKS / Minikube / etc.)
         │
         │
    kagent pods
         │
-        │ (HTTP)
+        │  (HTTP)
         ▼
-   Ollama Server (inside cluster)
+   Ollama Service (ClusterIP)
         │
         ▼
-   Local Model (llama3 / mistral / phi3)
+   Local Model (tinyllama / phi3)
 ```
 
-Everything runs inside your cluster 🚀
+Everything runs inside your Kubernetes cluster 🚀
 
 ---
 
-# 🚀 STEP 1 — Install Ollama Inside Kubernetes
+# 🚀 STEP 1 — Deploy Ollama Inside Kubernetes
 
-We will deploy Ollama as a pod.
+We deploy Ollama as a normal Kubernetes deployment.
 
 ---
 
@@ -40,10 +60,10 @@ We will deploy Ollama as a pod.
 Create file:
 
 ```bash
-nano ollama-deployment.yaml
+vim ollama.yaml
 ```
 
-Paste this:
+Paste:
 
 ```yaml
 apiVersion: v1
@@ -54,7 +74,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: gp2
+  storageClassName: gp2   # change if needed
   resources:
     requests:
       storage: 20Gi
@@ -99,168 +119,238 @@ spec:
     - port: 11434
       targetPort: 11434
   type: ClusterIP
-
 ```
 
 Save and exit.
 
 ---
 
-## 🟢 Apply It
+## 🟢 Apply Ollama
 
 ```bash
-kubectl apply -f ollama-deployment.yaml
+kubectl apply -f ollama.yaml
 ```
-- Watch PVC
+
+Watch PVC:
 
 ```bash
 kubectl get pvc -n kagent -w
 ```
-Now it should go:
-```bash
+
+It should change:
+
+```
 Pending → Bound
 ```
-Check:
+
+Check pod:
 
 ```bash
 kubectl get pods -n kagent
 ```
-- Wait 5 mins And then cheque it
+
 Wait until:
 
-```bash
-ollama-xxxx    Running
 ```
-
-- 🚀 If You Want To Check Image Pull Progress
-Run:
-```bash
-kubectl describe pod ollama-6747f4c5f4-k7kbg | grep -A5 Events
+ollama-xxxx   Running
 ```
-If it changes to:
-```bash
-Pulled
-Created
-Started
-```
-Then it's done.
-
-
-```bash
-kubectl get pods
-```
-```bash
-ollama-xxxx    Running
-```
-
 
 ---
 
-## STEP 4 — Test Internal Connection
-- From kagent namespace:
-```bash
-kubectl exec -it -n kagent deploy/kagent-controller -- curl http://ollama:11434
-```
-- If it returns something → networking OK.
+# 🚀 STEP 2 — Pull Model (Very Important)
 
-## STEP 5 — Restart kagent Controller
+⚠ If your instance has 4GB RAM → use tinyllama
+⚠ If your instance has 8GB+ RAM → you can use phi3
+
+### Recommended for Students (4GB):
+
+```bash
+kubectl exec -it -n kagent deploy/ollama -- ollama pull tinyllama
+```
+
+Verify:
+
+```bash
+kubectl exec -it -n kagent deploy/ollama -- ollama list
+```
+
+You should see:
+
+```
+tinyllama:latest
+```
+
+---
+
+# 🚀 STEP 3 — Test Ollama From Inside Cluster
+
+Run debug pod:
+
+```bash
+kubectl run debug --rm -it \
+  --image=curlimages/curl \
+  --namespace kagent \
+  --restart=Never \
+  --command -- sh
+```
+
+Inside:
+
+```bash
+curl -X POST http://ollama:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"model":"tinyllama:latest","messages":[{"role":"user","content":"hello"}]}'
+```
+
+If you see streaming JSON → Ollama is working ✅
+
+Exit debug pod.
+
+---
+
+# 🚀 STEP 4 — Create Ollama ModelConfig (Correct Way)
+
+⚠ Do NOT edit deployment manually
+⚠ Do NOT set environment variables manually
+
+We use ModelConfig.
+
+Create file:
+
+```bash
+vim ollama-model.yaml
+```
+
+Paste:
+
+```yaml
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: ollama-model-config
+  namespace: kagent
+spec:
+  model: tinyllama:latest
+  provider: Ollama
+  ollama: {}
+```
+
+Apply:
+
+```bash
+kubectl apply -f ollama-model.yaml
+```
+
+Restart controller:
+
 ```bash
 kubectl rollout restart deployment kagent-controller -n kagent
 ```
-Wait until all pods Running again.
-
-## Now Refresh UI
-
-Go to kagent UI → Create Agent.
-
-Now you should see:
-```bash
-Local / Ollama
-```
----
----
-
-# Leave it everything This is everything Backup plan
-
-
-# 🚀 STEP 1 — Test Ollama From Cluster
-
-Run:
-
-```bash
-kubectl exec -it deploy/ollama -- ollama run phi3
-```
-
-Type:
-
-```
-hello
-```
-
-If it responds → ✅ Ollama working
-
-
-# 🚀 STEP 2 — Configure kagent To Use Ollama
-
-Now we must tell kagent:
-
-❌ Don’t use OpenAI
-❌ Don’t use Gemini
-✅ Use Ollama
 
 ---
 
-## 🔎 Find kagent config
+# 🚀 STEP 5 — (Optional) Disable External Providers
 
-Check:
-
-```bash
-kubectl get configmap
-kubectl get secrets
-```
-
-Look for something like:
-
-```
-kagent-config
-```
-
-## 🟢 Update Environment Variables
-
-Edit kagent deployment:
+If you want fully local mode only:
 
 ```bash
-kubectl edit deployment my-first-k8s-agent
+helm upgrade kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
+  -n kagent \
+  --reuse-values \
+  --set providers.openAI.enabled=false \
+  --set providers.gemini.enabled=false
 ```
 
-Inside container section, add:
-
-```yaml
-env:
-  - name: MODEL_PROVIDER
-    value: "ollama"
-  - name: OLLAMA_BASE_URL
-    value: "http://ollama:11434"
-  - name: OLLAMA_MODEL
-    value: "phi3"
-```
-
-Save and exit.
-
-
-# 🚀 STEP 3 — Restart kagent
+Restart controller again:
 
 ```bash
-kubectl rollout restart deployment my-first-k8s-agent
+kubectl rollout restart deployment kagent-controller -n kagent
 ```
-
-Check logs:
-
-```bash
-kubectl logs -f deploy/my-first-k8s-agent
-```
-
-If no more 429 errors → SUCCESS 🎉
 
 ---
 
+# 🚀 STEP 6 — Use Ollama in UI
+
+Open UI.
+
+Create or edit agent.
+
+Select:
+
+```
+Ollama (tinyllama:latest)
+```
+
+Now test:
+
+```
+hi
+```
+
+It should respond normally.
+
+No 429 errors.
+No external API calls.
+
+Fully local.
+
+---
+
+# 🛟 Backup Plan — If Something Fails
+
+## Check Ollama Logs
+
+```bash
+kubectl logs -n kagent deploy/ollama
+```
+
+## Check Controller Logs
+
+```bash
+kubectl logs -n kagent deploy/kagent-controller
+```
+
+## Check Model Loaded
+
+```bash
+kubectl exec -it -n kagent deploy/ollama -- ollama list
+```
+
+---
+
+# ⚠ Common Errors & Fixes
+
+### Error:
+
+```
+llama runner process no longer running
+```
+
+Cause:
+
+* Not enough RAM
+
+Fix:
+
+* Use tinyllama
+* Or upgrade instance to 8GB+
+
+---
+
+### Error:
+
+```
+Ollama_chatException - /api/chat
+```
+
+Fix:
+
+* Ensure Helm baseUrl is:
+
+```
+http://ollama:11434
+```
+
+* Restart controller
+
+---
