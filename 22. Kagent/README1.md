@@ -359,6 +359,8 @@ You will now see selectable models:
 helm uninstall kagent -n kagent
 helm uninstall kagent-crds -n kagent
 kubectl delete namespace kagent
+kubectl create namespace kagent
+
 ```
 
 ---
