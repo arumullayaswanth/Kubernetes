@@ -127,7 +127,7 @@ kubectl get pods -n kagent
 - Wait 5 mins And then cheque it
 Wait until:
 
-```
+```bash
 ollama-xxxx    Running
 ```
 
@@ -148,7 +148,7 @@ Then it's done.
 ```bash
 kubectl get pods
 ```
-```
+```bash
 ollama-xxxx    Running
 ```
 
