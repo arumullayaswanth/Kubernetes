@@ -112,7 +112,8 @@ Save and exit.
 kubectl apply -f ollama-deployment.yaml
 ```
 - Watch PVC
-````bash
+
+```bash
 kubectl get pvc -n kagent -w
 ```
 Now it should go:
