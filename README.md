@@ -145,11 +145,13 @@ You should see 2 nodes in `Ready` state.
 Required for dynamic PVC storage.
 
 ```bash
+
 eksctl create addon \
   --name aws-ebs-csi-driver \
   --cluster my-cluster \
   --region us-east-1 \
-  --service-account-role-arn auto
+  --force
+
 ```
 
 Verify:
