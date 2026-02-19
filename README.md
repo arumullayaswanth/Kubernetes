@@ -1,203 +1,250 @@
 
-# Setup Kubernetes on Amazon EKS
 
-You can follow the same procedure in the official AWS documentation:  
-[Getting started with Amazon EKS – eksctl](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html)
+# 🚀 Production-Grade Kubernetes Setup on Amazon EKS
 
----
+This guide walks you step-by-step through creating a **Production-Ready Amazon EKS Cluster** using `eksctl`.
 
-## 📌 Pre-requisites
-
-- An EC2 instance (Amazon Linux 2 recommended)
-- AWS CLI configured (`aws configure`)
-- IAM permissions:
-  - IAM
-  - EC2
-  - VPC
-  - CloudFormation
-  - EKS
-
-> ⚠️ Note: If your bootstrap system is outside AWS, create an IAM user with **programmatic access**.
+Official AWS Documentation:
+[https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html)
 
 ---
 
-# Step 1: Install kubectl
+# 📌 Architecture Overview
 
-### 1. Download kubectl
+```
+AWS
+ ├── VPC
+ ├── EKS Control Plane
+ ├── Managed Node Group (Auto Scaling 2–10)
+ ├── Cluster Autoscaler
+ ├── EBS CSI Driver
+ └── IAM OIDC Provider
+```
 
-```sh
+---
+
+# 📌 Pre-Requisites
+
+You need:
+
+* Amazon Linux 2 EC2 instance (recommended t3.medium or higher)
+* AWS CLI installed & configured
+* IAM Role attached to EC2 with:
+
+Required Policies:
+
+* AmazonEKSClusterPolicy
+* AmazonEC2FullAccess
+* AmazonVPCFullAccess
+* AWSCloudFormationFullAccess
+* IAMFullAccess
+
+Verify AWS:
+
+```bash
+aws sts get-caller-identity
+```
+
+---
+
+# STEP 1 — Install kubectl
+
+```bash
 curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-````
-
-### 2. Make it executable
-
-```sh
-chmod +x ./kubectl
-```
-
-### 3. Move to PATH
-
-```sh
-sudo mv ./kubectl /usr/local/bin
-```
-
-### 4. Verify installation
-
-```sh
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
 kubectl version --client
 ```
 
-- or
-```bash
-curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" 
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin
-kubectl version --client
-```
 ---
 
-# Step 2: Install eksctl
+# STEP 2 — Install eksctl
 
-### 1. Download and extract latest release
-
-```sh
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-```
-
-### 2. Move binary to PATH
-
-```sh
-sudo mv /tmp/eksctl /usr/local/bin
-```
-
-### 3. Verify installation
-
-```sh
-eksctl version
-```
-- Or
 ```bash
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+curl --silent --location \
+"https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+| tar xz -C /tmp
+
 sudo mv /tmp/eksctl /usr/local/bin
 eksctl version
 ```
----
-# Install Helm (Optional)
 
-### Install Helm 3
+---
+
+# STEP 3 — Install Helm (Required for Autoscaler)
 
 ```bash
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-```
-
-### Verify installation
-
-```bash
 helm version
 ```
 
 ---
 
-# Step 3: Create IAM Role for EC2
+# STEP 4 — Create Production EKS Cluster
 
-1. Go to **AWS Console → IAM**
-2. Create a new **IAM Role**
-3. Attach policies:
+### ⚡ Recommended Instance Type
 
-   * AmazonEKSClusterPolicy
-   * AmazonEC2FullAccess
-   * AmazonVPCFullAccess
-   * AWSCloudFormationFullAccess
-   * IAMFullAccess
-4. Attach this role to your EC2 instance
+| Use Case             | Instance  |
+| -------------------- | --------- |
+| Dev                  | t3.large  |
+| Small Production     | m5.large  |
+| Medium Production    | m5.xlarge |
+| AI / Heavy Workloads | c5.xlarge |
 
 ---
 
-# Step 4: Create EKS Cluster and Node Group
+## 🚀 Create Cluster (Production Command)
 
-Create the cluster in `us-east-1`:
-
-```sh
+```bash
 eksctl create cluster \
   --name my-cluster \
   --region us-east-1 \
+  --version 1.34 \
   --nodegroup-name my-nodegroup \
-  --node-type t3.large \
+  --node-type m5.large \
   --nodes 2 \
   --nodes-min 2 \
   --nodes-max 10 \
-  --managed
+  --managed \
+  --with-oidc \
+  --asg-access \
+  --external-dns-access \
+  --full-ecr-access \
+  --appmesh-access
 ```
 
-### 🔹 What this does:
+---
 
+## 🔹 What This Command Does
+
+* Creates VPC automatically
 * Creates EKS control plane
-* Creates node group
-* Enables auto scaling (2–10 nodes)
-* Sets up networking
-* Configures CloudFormation stack
+* Creates managed node group
+* Enables IAM OIDC
+* Enables Auto Scaling Group permissions
+* Sets scaling range (2–10 nodes)
+* Production-ready IAM setup
 
-> ⏳ Cluster creation may take 10–20 minutes.
-
----
-
-# Step 4.1: Verify Auto Scaling Group
-
-1. Go to **AWS Console → EC2 → Auto Scaling Groups**
-2. Look for:
-
-```
-eksctl-my-cluster-nodegroup-<random-string>
-```
-
-3. Verify:
-
-   * Desired Capacity = 2
-   * Min Capacity = 2
-   * Max Capacity = 10
+⏳ Wait 15–20 minutes.
 
 ---
 
-# Step 5: Configure kubectl to Connect to EKS
+# STEP 5 — Configure kubectl
 
-After cluster creation, update kubeconfig:
-
-```sh
+```bash
 aws eks --region us-east-1 update-kubeconfig --name my-cluster
-```
-
-Check node groups:
-
-```sh
-eksctl get nodegroup --cluster my-cluster --region us-east-1
-```
-
----
-
-# Step 6: Verify Cluster Connection
-
-```sh
 kubectl get nodes
 ```
 
-✅ If successful, you should see 2 worker nodes in `Ready` state.
+You should see 2 nodes in `Ready` state.
 
 ---
 
-# Step 7: Delete EKS Cluster (Cleanup)
+# STEP 6 — Install Amazon EBS CSI Driver (IMPORTANT)
 
-To delete cluster and all associated resources:
+Required for dynamic PVC storage.
 
-```sh
-eksctl delete cluster --name my-cluster --region us-east-1
+```bash
+eksctl create addon \
+  --name aws-ebs-csi-driver \
+  --cluster my-cluster \
+  --region us-east-1 \
+  --service-account-role-arn auto
 ```
 
-> ⚠️ This will delete:
->
-> * EKS cluster
-> * Worker nodes
-> * VPC resources created by eksctl
-> * CloudFormation stacks
+Verify:
+
+```bash
+kubectl get pods -n kube-system | grep ebs
+```
+
+---
+
+# STEP 7 — Install Cluster Autoscaler (Scaling Fix)
+
+⚠️ Without this, cluster will NOT scale.
+
+---
+
+### Add Helm Repo
+
+```bash
+helm repo add autoscaler https://kubernetes.github.io/autoscaler
+helm repo update
+```
+
+---
+
+### Install Autoscaler
+
+```bash
+helm install cluster-autoscaler autoscaler/cluster-autoscaler \
+  -n kube-system \
+  --set autoDiscovery.clusterName=my-cluster \
+  --set awsRegion=us-east-1 \
+  --set rbac.create=true \
+  --set image.tag=v1.29.0
+```
+
+---
+
+### Verify Autoscaler
+
+```bash
+kubectl get pods -n kube-system | grep autoscaler
+```
+
+Check logs:
+
+```bash
+kubectl logs -n kube-system deployment/cluster-autoscaler
+```
+
+You should see:
+
+```
+Successfully discovered ASG
+```
+---
+
+# STEP 9 — Verify Auto Scaling Group
+
+Go to:
+
+AWS Console → EC2 → Auto Scaling Groups
+
+You will see:
+
+```
+eksctl-my-cluster-nodegroup-xxxx
+```
+
+Check:
+
+* Min = 2
+* Desired = 2
+* Max = 10
+
+---
+
+# 🧹 DELETE Cluster (Cleanup)
+
+⚠️ This deletes EVERYTHING.
+
+```bash
+eksctl delete cluster \
+  --name my-cluster \
+  --region us-east-1
+```
+
+Deletes:
+
+* EKS Control Plane
+* Node Groups
+* VPC
+* Load Balancers
+* Security Groups
+* CloudFormation stacks
 
 ---
 
