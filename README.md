@@ -199,7 +199,8 @@ kubectl get pods -n kube-system | grep autoscaler
 Check logs:
 
 ```bash
-kubectl logs -n kube-system deployment/cluster-autoscaler
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-cluster-autoscaler
+
 ```
 
 You should see:
