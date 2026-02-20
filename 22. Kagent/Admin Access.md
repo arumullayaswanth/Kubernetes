@@ -137,6 +137,10 @@ toolNames:
   - k8s_get_resources
 ```
 
+delete 2 line
+- k8s_get_available_api_resources
+- k8s_get_resources
+
 If missing, add them.
 
 Save and exit.
