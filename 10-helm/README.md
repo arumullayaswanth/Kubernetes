@@ -122,17 +122,49 @@ helm create cart
 ```
 🎉 Helm made many files for you automatically.
 
-#### Now delete useless test stuff (to keep it clean):
-
-```bash
-rm -rf cart/templates/tests
-```
-
 Helm created files for you 🧠
 
----
+### 🧩 STEP 2.1: CART DEPLOYMENT (Tell Cart HOW to Run)
 
-## ✏️ STEP 3: CART VALUES (WHAT TO RUN)
+```bash
+vim cart/templates/deployment.yaml
+```
+```bash
+
+
+Find **containers:** section
+and **Replace only this part** 👇
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-cart
+  labels:
+    app.kubernetes.io/name: cart
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cart
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cart
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: cart
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: ["sh", "-c", "echo {{ .Values.appMessage }}; sleep 3600"]
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+```
+
+Save & exit
+
+### ✏️ STEP 2.2: CART VALUES (WHAT TO RUN)
 
 ```bash
 vim cart/values.yaml
@@ -149,77 +181,65 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-command:
-  - sh
-  - -c
-  - "while true; do echo Cart Service Running; sleep 5; done"
+appMessage: "Cart Service Running 🛒"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
 
 service:
   type: ClusterIP
   port: 80
+
+ingress:
+  enabled: false
+
+httpRoute:
+  enabled: false
+
+resources: {}
+
+autoscaling:
+  enabled: false
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
 ```
 esc → :wq → Enter
 🧠 This means:
 
 “Run a tiny BusyBox and keep saying Cart Service Running”
 
----
-
-## 🧩 STEP 4: CART DEPLOYMENT (Tell Cart HOW to Run)
-
+### STEP 2.3: Identity of chart. Contains name, version, appVersion.
 ```bash
-vim cart/templates/deployment.yaml
+vim Chart.yaml
 ```
-```bash
-
-
-Find **containers:** section
-and **Replace only this part** 👇
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "cart.fullname" . }}
-  labels:
-    app.kubernetes.io/name: {{ include "cart.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-spec:
-  replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: {{ include "cart.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: {{ include "cart.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-    spec:
-      containers:
-        - name: cart
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: {{ .Values.command }}
-
-```
-
-Save & exit
+- You will see in this file Description, Appversion, Name
 
 ---
-
-# 💳 STEP 5: CREATE CHECKOUT HELM CHART (Same top, Different Name )
+# 💳 STEP 3: CREATE CHECKOUT HELM CHART (Same top, Different Name )
 
 ```bash
 helm create checkout
-rm -rf checkout/templates/tests
+cd checkout
 ```
 
----
-
-## ✏️ STEP 6: CHECKOUT VALUES (Tell Checkout What to Do)
+### ✏️ STEP 3.1: Configure Checkout Service
 
 ```bash
-nano checkout/values.yaml
+vim checkout/values.yaml
 ```
 
 Delete everything ❌
@@ -233,24 +253,49 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-command:
-  - sh
-  - -c
-  - "while true; do echo Checkout Service Running; sleep 5; done"
+appMessage: "Checkout Service Running 💳"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
 
 service:
   type: ClusterIP
   port: 80
+
+ingress:
+  enabled: false
+
+httpRoute:
+  enabled: false
+
+resources: {}
+
+autoscaling:
+  enabled: false
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
 ```
 
 Save & exit
 
----
-
-## 🧩 STEP 7: CHECKOUT DEPLOYMENT (Tell Checkout HOW to Run)
+### 🧩 STEP 3.2: CHECKOUT DEPLOYMENT 
 
 ```bash
-nano checkout/templates/deployment.yaml
+vim checkout/templates/deployment.yaml
 ```
 
 Replace **containers** section with:
@@ -259,35 +304,45 @@ Replace **containers** section with:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "checkout.fullname" . }}
+  name: {{ .Release.Name }}-checkout
   labels:
-    app.kubernetes.io/name: {{ include "checkout.name" . }}
+    app.kubernetes.io/name: checkout
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "checkout.name" . }}
+      app.kubernetes.io/name: checkout
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "checkout.name" . }}
+        app.kubernetes.io/name: checkout
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
         - name: checkout
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: {{ .Values.command }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: ["sh", "-c", "echo {{ .Values.appMessage }}; sleep 3600"]
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
 
 ```
 
 Save & exit
 
+### STEP 3.4: Identity of chart. Contains name, version, appVersion.
+```bash
+vim Chart.yaml
+```
+- You will see in this file Description, Appversion, Name
+
 ---
 
-# 📦 STEP 8: PACKAGE BOTH HELM CHARTS
-
+# 📦 STEP 4: Package Charts
+Go back to main folder:
+```bash
+cd ../../
+```
 ```bash
 helm package cart
 helm package checkout
@@ -304,7 +359,7 @@ checkout-0.1.0.tgz
 
 ---
 
-# 🏪 STEP 9: CREATE HELM REPOSITORY FILE
+# 🏪 STEP 5: Create Helm Repo Index
 
 ```bash
 helm repo index .
@@ -327,11 +382,11 @@ THIS = Helm Repo 🏪
 
 ---
 
-# 🌍 STEP 10: HOST HELM REPO ON GitHub    (Part-1)
+# 🌍 STEP 6: HOST HELM REPO ON GitHub    (Part-1)
 
 ---
 
-## 🔹 Step 10.1: Create GitHub Repo
+## 🔹 Step 6.1: Create GitHub Repo
 
 * Name: `ecommerce-helm-repo`
 * Public ✅
@@ -339,7 +394,7 @@ THIS = Helm Repo 🏪
 
 ---
 
-## 🔹 Step 10.2: Push Files to GitHub
+## 🔹 Step 6.2: Push Files to GitHub
 
 ```bash
 git init
@@ -352,7 +407,7 @@ git push -u origin main
 
 ---
 
-## 🔹 Step 10.3: Enable GitHub Pages
+## 🔹 Step 6.3: Enable GitHub Pages
 
 1. Repo → **Settings**
 2. **Pages**
@@ -421,6 +476,9 @@ Output:
 cart-xxxxx      Running
 checkout-xxxxx  Running
 ```
+```bash
+kubectl get svc
+```
 
 ---
 
@@ -435,6 +493,17 @@ kubectl logs -l app.kubernetes.io/name=checkout
 ```
 
 ---
+## Want to Access From Browser?
+Since you're using Minikube on EC2, do this:
+Option 1: Port Forward
+```bash
+kubectl port-forward svc/cart 8080:80
+```
+Now open in browser:
+```bash
+http://EC2-PUBLIC-IP:8080
+```
+
 
 # 🏆 FINAL RESULT
 
@@ -509,3 +578,72 @@ index.yaml
 
 
 ---
+
+# update HELM git rep
+
+
+### 📦 STEP 4 — PACKAGE AGAIN (IMPORTANT)
+
+Go to main folder:
+
+```bash
+cd ~/ecommerce-helm
+```
+
+Re-package charts:
+
+```bash
+helm package cart
+helm package checkout
+```
+
+Re-create index:
+
+```bash
+helm repo index .
+```
+
+---
+
+### 🚀 STEP 5 — UPDATE HELM REPO
+
+Push updated files to GitHub:
+
+```bash
+git add .
+git commit -m "Fix service.port nil pointer error"
+git push
+```
+
+Wait 30 seconds for GitHub Pages to refresh.
+
+---
+
+# 🔄 STEP 6 — UPDATE LOCAL HELM REPO CACHE
+
+On EC2:
+
+```bash
+helm repo update
+```
+
+---
+
+# 🚀 STEP 7 — INSTALL AGAIN
+
+If old release exists:
+
+```bash
+helm uninstall cart
+helm uninstall checkout
+```
+
+Now install fresh:
+
+```bash
+helm install cart ecommerce/cart
+helm install checkout ecommerce/checkout
+```
+
+---
+
