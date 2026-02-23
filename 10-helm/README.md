@@ -56,7 +56,16 @@ Start Kubernetes:
 ```bash
 minikube start --driver=docker
 ```
+Use Minikube’s built-in kubectl:
 
+```bash
+minikube kubectl -- get nodes
+```
+If that works, you can create an alias so you don’t have to type that long command every time:
+```bash
+echo 'alias kubectl="minikube kubectl --"' >> ~/.bashrc
+source ~/.bashrc
+```
 Check:
 
 ```bash
