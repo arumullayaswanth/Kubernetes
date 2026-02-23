@@ -160,6 +160,7 @@ spec:
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           command: ["sh", "-c", "echo {{ .Values.appMessage }}; sleep 3600"]
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
 ```
 
 Save & exit
