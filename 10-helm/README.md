@@ -168,8 +168,10 @@ esc → :wq → Enter
 ## 🧩 STEP 4: CART DEPLOYMENT (Tell Cart HOW to Run)
 
 ```bash
-nano cart/templates/deployment.yaml
+vim cart/templates/deployment.yaml
 ```
+```bash
+
 
 Find **containers:** section
 and **Replace only this part** 👇
