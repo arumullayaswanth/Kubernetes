@@ -9,13 +9,13 @@
 
 * ☁️ **AWS** = Big playground
 * 🖥️ **EC2** = Computer inside playground
-* 🧺 **Cart** = one small app
-* 💳 **Checkout** = another small app
-* 📦 **Helm chart** = instruction box to run app
-* 🏪 **Helm repo** = place where boxes live
-* 🌍 **GitHub Pages** = internet shop
-* ☸️ **Kubernetes** = playground where apps run
-
+* 🐳 **Docker** = Container engine
+* ☸️ **Minikube** = Kubernetes cluster
+* 🎩 **Helm** = App package manager
+* 🛒 **Cart** = Microservice 1
+* 💳 **Checkout** = Microservice 2
+* 🏪 **Helm repo** = Store for charts
+* 🌍 **GitHub Pages / S3** = Hosting store online
 ---
 
 
