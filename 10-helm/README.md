@@ -129,7 +129,6 @@ Helm created files for you 🧠
 ```bash
 vim cart/templates/deployment.yaml
 ```
-```bash
 
 
 Find **containers:** section
