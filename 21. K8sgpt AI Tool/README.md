@@ -12,13 +12,8 @@
 
 Click the image above to watch the video.
 
-Or open directly:  
-https://youtu.be/ZY8PW4XgutM
+# 🖼 Medium blog
 
-
-
-# 🖼 Architecture
-
-![K8sGPT Architecture](https://miro.medium.com/v2/resize:fit:1100/format:webp/1*E2m7q9WlH0h8dR_3gAtF1g.png)
+[![Architecture](https://miro.medium.com/v2/resize:fit:1100/1*example.png)](https://miro.medium.com/v2/resize:fit:1100/1*example.png)
 
 
