@@ -115,17 +115,17 @@ Platform started successfully
 It will show a URL like:
 
 ```
-https://localhost:8443
+https://d294dx4.loft.host/projects/default/vclusters
 ```
+<p align="center">
+  <img src="https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165723.png" width="32%" />
+  <img src="https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165852.png" width="32%" />
+  <img src="https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165920.png" width="32%" />
+</p>
 
-Open it in browser.
-
-If browser warns about certificate → click “Advanced → Continue”.
-
-You now see dashboard UI.
-
-⚠ Important:
-If you want clusters visible in UI, you MUST start platform BEFORE creating clusters.
+| Image 1 | Image 2 | Image 3 |
+|--------|--------|--------|
+| ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165723.png) | ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165852.png) | ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165920.png) |
 
 ---
 
