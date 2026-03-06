@@ -84,7 +84,7 @@ Accept the self-signed certificate warning if prompted.
 Create a new cluster:
 
 ```bash
-vcluster create hybrid-cluster
+vcluster create hybrid-cluster --set privatenode.vpn.enabled=true --set privatenode.vpn.nodeToNode.enabled=true
 ```
 
 Verify nodes:
