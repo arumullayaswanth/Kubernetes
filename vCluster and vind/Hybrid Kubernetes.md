@@ -155,13 +155,13 @@ docker --version
 On your **local machine**, generate a join command:
 
 ```bash
-vcluster node join hybrid-cluster
+ vcluster token create
 ```
 
 This prints a command similar to:
 
 ```
-curl https://join-command.sh | sudo bash
+curl -fsSLk "https://172.18.0.2:8443/node/join?token=3whmst.m6ne4d1g7exz2uks" | sh -
 ```
 
 Copy that command.
@@ -169,7 +169,7 @@ Copy that command.
 Run it on the **EC2 instance**:
 
 ```bash
-curl https://join-command.sh | sudo bash
+curl -fsSLk "https://172.18.0.2:8443/node/join?token=3whmst.m6ne4d1g7exz2uks" | sh -
 ```
 
 This installs the node agent and connects the EC2 instance to your local cluster.
