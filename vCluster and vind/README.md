@@ -59,9 +59,11 @@ vCluster
 Run:
 
 ```bash
-curl -L https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64 -o vcluster
-chmod +x vcluster
-sudo mv vcluster /usr/local/bin/
+curl -L https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-windows-amd64.exe -o vcluster.exe
+mkdir -p "$HOME/bin"
+mv vcluster.exe "$HOME/bin/vcluster.exe"
+echo 'export PATH=$PATH:$HOME/bin' >> "$HOME/.bashrc"
+source "$HOME/.bashrc"
 ```
 
 Now verify:
