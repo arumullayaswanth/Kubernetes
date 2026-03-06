@@ -2,40 +2,9 @@
 
 This guide demonstrates how to connect an external cloud node (AWS EC2) to a **local Kubernetes cluster running with vCluster using the Docker driver (vind)**.
 
-By the end of this guide, your cluster will look like this:
+## Architecture Diagram
 
-```
-Developer Laptop
-      │
-      │  vCluster Control Plane (Docker)
-      │
-Local Node (Docker Container)
-      │
-Secure Tunnel / VPN
-      │
-AWS EC2 Worker Node
-```
-
-This creates a **hybrid Kubernetes cluster** where the control plane runs locally and the worker node runs in the cloud.
-
----
-
-# Table of Contents
-
-1. Prerequisites
-2. Install Required Tools
-3. Enable Docker Driver (vind)
-4. Start vCluster Platform UI
-5. Create Local Cluster
-6. Launch AWS EC2 Instance
-7. Prepare EC2 Node
-8. Join EC2 Node to the Cluster
-9. Verify Node Registration
-10. Deploy Workload to EC2 Node
-11. Optional: Force Pods to Run on EC2
-12. Cleanup
-
----
+![EC2 to Local Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/c2a0db6fe870908b82d9a2a30513c21c9e09029e/vCluster%20and%20vind/images/ec2%20to%20local.jpg)
 
 # 1. Prerequisites
 
@@ -44,9 +13,7 @@ Ensure the following tools are installed on your laptop.
 * Docker
 * kubectl
 * vCluster CLI (>= v0.31)
-
 Required accounts:
-
 * AWS account
 
 ---
@@ -105,7 +72,7 @@ vcluster platform start
 Open the UI in your browser:
 
 ```
-https://localhost:8443
+https://d294dx4.loft.host/projects/default/vclusters
 ```
 
 Accept the self-signed certificate warning if prompted.
