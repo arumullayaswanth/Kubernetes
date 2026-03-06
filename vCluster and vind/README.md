@@ -152,8 +152,19 @@ You should see containers like:
 vcluster.cp.dev-cluster
 vcluster.node.dev-cluster
 ```
-
 That means Kubernetes is running inside Docker.
+
+Verify nodes:
+```bash
+kubectl get nodes
+```
+Example output:
+```bash
+NAME                STATUS   ROLES
+vcluster-node       Ready    control-plane
+```
+Your local Kubernetes cluster is now running.
+
 
 ---
 
