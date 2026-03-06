@@ -122,7 +122,7 @@ https://d294dx4.loft.host/projects/default/vclusters
 |--------|--------|--------|
 | ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165723.png) | ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165852.png) | ![](https://github.com/arumullayaswanth/Kubernetes/blob/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/Screenshot%202026-03-06%20165920.png) |
 
-https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/8f999b861d7a73f4e439b08a0336f479c89441f6/vCluster%20and%20vind/images/filename.png
+
 
 ---
 
