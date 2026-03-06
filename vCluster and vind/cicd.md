@@ -8,7 +8,7 @@ The cluster is created temporarily, tests run against it, and then the cluster i
 
 ## vCluster and Vind Architecture
 
-![vCluster and Vind Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/440d50d36f89de702c62dd8263415866765188e8/vCluster%20and%20vind/images/unnamed.jpg)
+![vCluster and Vind Architecture](https://github.com/arumullayaswanth/Kubernetes/blob/a6b5ead6e69eccc12f1552c0a433a2698c1d80ac/vCluster%20and%20vind/images/cicd.jpg)
 
 ### Workflow
 
