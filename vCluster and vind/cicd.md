@@ -4,9 +4,6 @@ This guide demonstrates how to create **ephemeral Kubernetes clusters during CI/
 
 The cluster is created temporarily, tests run against it, and then the cluster is destroyed.
 
----
-
-## vCluster and Vind Architecture
 
 ![vCluster and Vind Architecture](https://github.com/arumullayaswanth/Kubernetes/blob/a6b5ead6e69eccc12f1552c0a433a2698c1d80ac/vCluster%20and%20vind/images/cicd.jpg)
 
