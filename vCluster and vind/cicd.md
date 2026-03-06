@@ -1,400 +1,303 @@
-# Advanced vCluster / vind Features – End-to-End Guide
+# CI/CD with GitHub Actions using vCluster (vind)
 
-This guide demonstrates advanced capabilities of **vCluster** using the Docker driver (**vind**) for local Kubernetes development.
+This guide demonstrates how to create **ephemeral Kubernetes clusters during CI/CD pipelines using GitHub Actions and vCluster**.
 
-We will implement the following features step-by-step:
-
-1. GitOps Integration with Argo CD
-2. CI/CD Ephemeral Clusters
-3. Resource Limits & Quotas
-4. RBAC (Role-Based Access Control)
-5. Cluster Snapshots (Concept & Workflow)
-
-Tools used in this guide:
-
-* Docker
-* kubectl
-* vCluster CLI
-* GitHub
-* Argo CD
+The cluster is created temporarily, tests run against it, and then the cluster is destroyed.
 
 ---
 
-# Architecture Overview
+# Architecture
 
 ```text
-Developer Laptop
-      │
-      │ vCluster (Docker Driver)
-      │
-Local Kubernetes Cluster
-      │
-┌───────────────┬───────────────┐
-│ GitOps        │ CI/CD         │
-│ ArgoCD        │ Ephemeral     │
-│ Deployments   │ Clusters      │
-└───────────────┴───────────────┘
+GitHub Repository
+       │
+       │ Push Code
+       │
+GitHub Actions Runner
+       │
+Install vCluster CLI
+       │
+Create vCluster (Docker Driver)
+       │
+Deploy Application
+       │
+Run Tests
+       │
+Delete Cluster
+```
+
+This workflow allows developers to test applications in **real Kubernetes environments automatically**.
+
+---
+
+# Prerequisites
+
+You need:
+
+* GitHub repository
+* Docker support in GitHub runner
+* vCluster CLI
+* kubectl
+
+---
+
+# Step 1: Repository Structure
+
+Example repository structure:
+
+```text
+repo/
+│
+├── .github/
+│   └── workflows/
+│       └── vcluster-ci.yaml
+│
+├── k8s/
+│   └── deployment.yaml
+│
+└── README.md
 ```
 
 ---
 
-# 1. Prerequisites
+# Step 2: Kubernetes Deployment Example
 
-Ensure the following tools are installed.
+Create a simple deployment.
 
-```bash
-docker --version
-kubectl version --client
-vcluster --version
+File:
+
+```text
+k8s/deployment.yaml
 ```
 
-Minimum required vCluster version:
-
-```
-v0.31+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: demo
+          image: nginx
+          ports:
+            - containerPort: 80
 ```
 
 ---
 
-# 2. Create Local Cluster
+# Step 3: GitHub Actions Workflow
 
-Enable Docker driver.
+Create the workflow file.
 
-```bash
-vcluster use driver docker
+Path:
+
+```text
+.github/workflows/vcluster-ci.yaml
 ```
 
-Start platform UI (optional).
+---
 
-```bash
-vcluster platform start
+## GitHub Action Pipeline
+
+```yaml
+name: vCluster CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  kubernetes-test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install kubectl
+        run: |
+          curl -LO https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Install vCluster CLI
+        run: |
+          curl -L https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64 -o vcluster
+          chmod +x vcluster
+          sudo mv vcluster /usr/local/bin/
+
+      - name: Enable Docker Driver
+        run: |
+          vcluster use driver docker
+
+      - name: Create vCluster
+        run: |
+          vcluster create ci-cluster --connect=false
+          vcluster connect ci-cluster
+
+      - name: Verify Cluster
+        run: |
+          kubectl get nodes
+
+      - name: Deploy Application
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+
+      - name: Verify Pods
+        run: |
+          kubectl get pods
+
+      - name: Run Tests
+        run: |
+          kubectl rollout status deployment/demo-app
+
+      - name: Delete Cluster
+        run: |
+          vcluster delete ci-cluster
 ```
 
-Create a cluster.
+---
+
+# Step 4: Trigger the Pipeline
+
+Commit and push code:
 
 ```bash
-vcluster create dev-cluster
+git add .
+git commit -m "Add CI pipeline"
+git push origin main
 ```
 
-Verify nodes.
+GitHub Actions will automatically start the workflow.
+
+---
+
+# Step 5: Observe Workflow Execution
+
+In GitHub:
+
+```text
+Repository → Actions → vCluster CI Pipeline
+```
+
+You will see stages:
+
+1. Checkout code
+2. Install tools
+3. Create cluster
+4. Deploy application
+5. Run tests
+6. Delete cluster
+
+---
+
+# Step 6: Verify Cluster Creation
+
+During the workflow:
 
 ```bash
 kubectl get nodes
 ```
 
-Expected output:
+Example output:
 
+```text
+NAME             STATUS
+vcluster-node    Ready
 ```
-NAME              STATUS
-vcluster-node     Ready
-```
+
+This confirms Kubernetes cluster creation inside the CI runner.
 
 ---
 
-# 3. GitOps Integration (Argo CD)
+# Step 7: Ephemeral Cluster Behavior
 
-GitOps allows Kubernetes deployments to be controlled using Git repositories.
+Each pipeline execution:
 
-## Install Argo CD
-
-Create namespace.
-
-```bash
-kubectl create namespace argocd
+```text
+Pipeline Start
+      │
+Create vCluster
+      │
+Deploy Application
+      │
+Run Tests
+      │
+Delete Cluster
 ```
 
-Install Argo CD.
+Advantages:
 
-```bash
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-```
-
-Wait until pods are running.
-
-```bash
-kubectl get pods -n argocd
-```
+* Clean environments for each build
+* No leftover infrastructure
+* Faster test cycles
+* Real Kubernetes environment
 
 ---
 
-## Access Argo CD UI
+# Benefits of vCluster in CI/CD
 
-Forward service port.
+Key advantages:
 
-```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-
-Open browser.
-
-```
-https://localhost:8080
-```
-
-Get admin password.
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret \
--o jsonpath="{.data.password}" | base64 -d
-```
-
-Login:
-
-```
-Username: admin
-Password: <generated password>
-```
+* lightweight Kubernetes clusters
+* fast cluster creation
+* isolated test environments
+* reduced infrastructure cost
+* reproducible CI pipelines
 
 ---
 
-## Deploy Application Using GitOps
+# Example CI/CD Workflow Diagram
 
-Example repository:
-
-```
-https://github.com/argoproj/argocd-example-apps
-```
-
-Create application.
-
-```bash
-kubectl create namespace demo
-```
-
-Apply application manifest.
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/argoproj/argocd-example-apps/master/guestbook/guestbook-ui-deployment.yaml
+```text
+Developer Push
+      │
+GitHub Actions
+      │
+Create vCluster
+      │
+Deploy App
+      │
+Run Tests
+      │
+Delete Cluster
 ```
 
-Verify:
-
-```bash
-kubectl get pods -n demo
-```
+This workflow ensures applications are always tested in **real Kubernetes environments before deployment**.
 
 ---
 
-# 4. CI/CD Ephemeral Clusters
+# Cleanup
 
-Ephemeral clusters are temporary clusters created for testing during CI pipelines.
-
-## Create Temporary Cluster
-
-```bash
-vcluster create ci-cluster
-```
-
-Deploy test application.
-
-```bash
-kubectl create deployment test-app --image=nginx
-```
-
-Verify pods.
-
-```bash
-kubectl get pods
-```
-
----
-
-## Simulate CI Pipeline
-
-Example workflow:
-
-```
-CI pipeline starts
-        │
-create vCluster
-        │
-run integration tests
-        │
-destroy cluster
-```
-
-Delete cluster after tests.
+The pipeline automatically removes the cluster:
 
 ```bash
 vcluster delete ci-cluster
 ```
 
-This keeps environments clean.
-
----
-
-# 5. Resource Limits and Quotas
-
-Resource limits protect clusters from over-consumption.
-
-Create namespace.
-
-```bash
-kubectl create namespace team-a
-```
-
-Create resource quota.
-
-```yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: compute-quota
-  namespace: team-a
-spec:
-  hard:
-    pods: "5"
-    requests.cpu: "2"
-    requests.memory: 4Gi
-    limits.cpu: "4"
-    limits.memory: 8Gi
-```
-
-Apply quota.
-
-```bash
-kubectl apply -f quota.yaml
-```
-
-Verify quota.
-
-```bash
-kubectl get quota -n team-a
-```
-
----
-
-# 6. RBAC (Role-Based Access Control)
-
-RBAC restricts access for users or teams.
-
-## Create Service Account
-
-```bash
-kubectl create serviceaccount dev-user
-```
-
----
-
-## Create Role
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  namespace: default
-  name: pod-reader
-rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get","watch","list"]
-```
-
-Apply role.
-
-```bash
-kubectl apply -f role.yaml
-```
-
----
-
-## Bind Role
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: read-pods
-subjects:
-- kind: ServiceAccount
-  name: dev-user
-roleRef:
-  kind: Role
-  name: pod-reader
-  apiGroup: rbac.authorization.k8s.io
-```
-
-Apply binding.
-
-```bash
-kubectl apply -f rolebinding.yaml
-```
-
-Verify permissions.
-
-```bash
-kubectl auth can-i list pods --as=system:serviceaccount:default:dev-user
-```
-
----
-
-# 7. Cluster Snapshots (Concept)
-
-Cluster snapshots allow saving cluster state.
-
-Example use cases:
-
-* Backup cluster configuration
-* Restore test environments
-* Share cluster setups with teams
-
-Future snapshot workflow:
-
-```
-snapshot create dev-cluster
-snapshot store backup
-snapshot restore
-```
-
-Snapshots will allow:
-
-* environment cloning
-* rapid recovery
-* testing infrastructure states
-
----
-
-# 8. Clean Up
-
-Delete workloads.
-
-```bash
-kubectl delete deployment test-app
-```
-
-Delete cluster.
-
-```bash
-vcluster delete dev-cluster
-```
-
-Stop platform.
-
-```bash
-vcluster platform stop
-```
+This prevents resource waste.
 
 ---
 
 # Conclusion
 
-In this guide we implemented advanced vCluster capabilities:
+Using GitHub Actions with vCluster allows teams to create **ephemeral Kubernetes environments for CI/CD pipelines**.
 
-* GitOps deployments using Argo CD
-* CI/CD ephemeral clusters
-* Resource management with quotas
-* Secure RBAC access
-* Cluster snapshot concepts
+This approach enables:
 
-These features help build **production-grade Kubernetes development environments** using vCluster.
+* automated testing
+* isolated environments
+* cloud-native development workflows
 
----
-
-# Next Steps
-
-You can further explore:
-
-* Multi-cluster environments
-* Hybrid clusters with external nodes
-* Edge computing architectures
-* Automated developer environments
+It is especially useful for **DevOps teams building Kubernetes-based applications**.
