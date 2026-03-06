@@ -6,25 +6,22 @@ The cluster is created temporarily, tests run against it, and then the cluster i
 
 ---
 
-# Architecture
+## vCluster and Vind Architecture
 
-```text
-GitHub Repository
-       │
-       │ Push Code
-       │
-GitHub Actions Runner
-       │
-Install vCluster CLI
-       │
-Create vCluster (Docker Driver)
-       │
-Deploy Application
-       │
-Run Tests
-       │
-Delete Cluster
-```
+![vCluster and Vind Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/440d50d36f89de702c62dd8263415866765188e8/vCluster%20and%20vind/images/unnamed.jpg)
+
+### Workflow
+
+1. Developer pushes code to GitHub Repository
+2. GitHub Actions workflow is triggered
+3. Runner installs required tools:
+   - Docker
+   - kubectl
+   - vCluster CLI
+4. Create an ephemeral vCluster using Docker driver
+5. Deploy the application into the virtual cluster
+6. Run integration and end-to-end tests
+7. Delete the cluster after tests complete
 
 This workflow allows developers to test applications in **real Kubernetes environments automatically**.
 
