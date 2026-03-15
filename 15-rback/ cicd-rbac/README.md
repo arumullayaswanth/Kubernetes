@@ -68,7 +68,7 @@ cicd-deployer
 # Step 3 — Create RBAC Role for Deployment
 
 ```bash
-cicd-role.yaml
+vim cicd-role.yaml
 ```  
 
 ```yaml
@@ -114,7 +114,7 @@ cicd-deployer-role
 
 Create file:
 ```bash
-cicd-rolebinding.yaml
+vim cicd-rolebinding.yaml
 ```  
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -194,7 +194,7 @@ This proves RBAC security works.
 Create a Kubernetes deployment file.
 
 ```bash
-deployment.yaml
+vim deployment.yaml
 ```  
 
 ```yaml
