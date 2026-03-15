@@ -1,0 +1,13 @@
+# Kubernetes RBAC Labs
+
+This repository demonstrates multiple RBAC implementations.
+
+Labs Included
+
+1. Role + RoleBinding
+2. ClusterRole + ClusterRoleBinding
+3. CI/CD Pipeline RBAC
+
+CI/CD RBAC Example
+
+A ServiceAccount is used by a CI/CD pipeline to deploy applications securely without giving cluster-admin permissions.
