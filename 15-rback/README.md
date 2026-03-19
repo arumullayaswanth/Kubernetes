@@ -1,6 +1,15 @@
-## Kubernetes RBAC Explained
+
+
+## 🎥 Kubernetes RBAC Explained
+
+🔐 Understand how Kubernetes manages permissions  
+📦 Learn Roles, ClusterRoles, and Bindings  
+⚙️ Secure your cluster with best practices  
+
+👉 Click below to watch:
 
 [![Kubernetes RBAC Explained](https://img.youtube.com/vi/yVE8QxduXPQ/maxresdefault.jpg)](https://youtu.be/yVE8QxduXPQ)
+
 # Kubernetes RBAC Labs
 
 This repository demonstrates multiple RBAC implementations.
