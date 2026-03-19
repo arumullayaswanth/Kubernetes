@@ -1,3 +1,6 @@
+## Kubernetes RBAC Explained
+
+[![Kubernetes RBAC Explained](https://img.youtube.com/vi/yVE8QxduXPQ/maxresdefault.jpg)](https://youtu.be/yVE8QxduXPQ)
 # Kubernetes RBAC Labs
 
 This repository demonstrates multiple RBAC implementations.
