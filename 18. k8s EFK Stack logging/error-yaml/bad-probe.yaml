@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-probe-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    livenessProbe:
+      httpGet:
+        path: /wrong
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 5
