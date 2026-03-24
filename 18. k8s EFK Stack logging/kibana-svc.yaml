@@ -6,8 +6,10 @@ metadata:
   labels:
     app: kibana
 spec:
-  type: NodePort
-  ports:
-    - port: 5601
+  type: LoadBalancer
   selector:
     app: kibana
+  ports:
+    - protocol: TCP
+      port: 80          # Port exposed inside the cluster
+      targetPort: 5601
