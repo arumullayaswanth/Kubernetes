@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-client
+  namespace: kube-logging
+  labels:
+    app: db-client
+spec:
+  containers:
+    - name: db-client
+      image: postgres:14   # Using postgres client image
+      command: ["sh", "-c", "PGPASSWORD=wrongpass psql -h my-postgres-host -U wronguser -d mydb -c '\\q' || sleep 3600"]
