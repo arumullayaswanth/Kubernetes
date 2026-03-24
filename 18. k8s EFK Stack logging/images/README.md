@@ -1,13 +1,10 @@
-# 📊 K8s EFK Stack Logging
+
 
 ## 🏗️ Project Architecture
 
-![Project Architecture](18.%20k8s%20EFK%20Stack%20logging/project%20architecture.png)
+![Project Architecture](project architecture.png)
+![Project Architecture](sddefault.jpg)
 
----
 
-## 🎬 Demo Preview
-
-![Demo](sddefault.jpg)
 
 
