@@ -1,0 +1,171 @@
+name: EKS Terraform
+
+# Show a different workflow run name for PR plan, plan, apply, and destroy.
+run-name: >-
+  ${{
+    github.event_name == 'pull_request'
+    && format('EKS Terraform PR Plan #{0}', github.event.pull_request.number)
+    || github.event.inputs.action == 'apply'
+    && 'EKS Terraform Apply'
+    || github.event.inputs.action == 'destroy'
+    && 'EKS Terraform Destroy'
+    || github.event.inputs.action == 'plan'
+    && 'EKS Terraform Plan'
+    || 'EKS Terraform'
+  }}
+
+# Auto-run only on pull requests. Use workflow_dispatch when you want to run it yourself.
+on:
+  pull_request:
+    paths:
+      - "1.EKS-terraform/**"
+      - ".github/workflows/eks-terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Choose what you want to do with the cluster"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      confirm_destroy:
+        description: "Type yes only when you really want to delete the entire cluster"
+        required: false
+        default: "no"
+        type: string
+
+permissions:
+  contents: read
+
+# Prevent two runs for the same ref from changing the same infrastructure at the same time.
+concurrency:
+  group: eks-terraform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# Common Terraform settings used by both jobs.
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_WORKING_DIR: "1.EKS-terraform"
+  TF_STATE_KEY: "eks/terraform.tfstate"
+
+jobs:
+  # This job runs automatically for pull requests and only performs validation and plan.
+  terraform-plan-pr:
+    name: Terraform Plan On PR
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install the Terraform CLI.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Login to AWS using repository secrets.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # Initialize Terraform and connect it to the remote S3 backend state file.
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ env.TF_STATE_KEY }}" \
+            -backend-config="region=${{ secrets.AWS_REGION }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Show what Terraform will create, update, or delete for this pull request.
+      - name: Terraform Plan
+        run: terraform plan -no-color
+
+  # This job runs only when you manually start the workflow from GitHub Actions.
+  terraform-manual:
+    name: Terraform Manual Action
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install the Terraform CLI.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Login to AWS using repository secrets.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Add a safety check so destroy works only when you explicitly confirm it.
+      - name: Validate destroy confirmation
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "yes" ]; then
+            echo "Destroy was selected but confirm_destroy is not set to yes."
+            exit 1
+          fi
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # Initialize Terraform and connect it to the remote S3 backend state file.
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ env.TF_STATE_KEY }}" \
+            -backend-config="region=${{ secrets.AWS_REGION }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Run only the selected action from the manual workflow input.
+      - name: Terraform Plan
+        if: github.event.inputs.action == 'plan'
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve -no-color
+
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve -no-color
