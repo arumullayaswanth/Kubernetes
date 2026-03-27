@@ -491,6 +491,30 @@ resource "aws_iam_instance_profile" "ec2_admin_profile" {
   }
 }
 
+resource "aws_eks_access_entry" "ec2_admin_role" {
+  cluster_name  = aws_eks_cluster.eks.name
+  principal_arn = aws_iam_role.ec2_admin_role.arn
+  type          = "STANDARD"
+
+  tags = {
+    Name = "eks-ec2-admin-access-entry"
+  }
+}
+
+resource "aws_eks_access_policy_association" "ec2_admin_role" {
+  cluster_name  = aws_eks_cluster.eks.name
+  principal_arn = aws_iam_role.ec2_admin_role.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [
+    aws_eks_access_entry.ec2_admin_role
+  ]
+}
+
 
 resource "aws_instance" "eks" {
   ami                    = "ami-02dfbd4ff395f2a1b"
