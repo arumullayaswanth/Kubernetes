@@ -6,10 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.15"
-    }
   }
 }
 
@@ -21,8 +17,6 @@ provider "aws" {
   }
 }
 
-data "aws_region" "current" {}
-
 locals {
   cluster_name = "eksprod"
 
@@ -32,14 +26,6 @@ locals {
     Owner       = "yaswanth"
     ManagedBy   = "Terraform"
     Cluster     = local.cluster_name
-  }
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = data.aws_eks_cluster.eks.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.eks.token
   }
 }
 
@@ -302,84 +288,6 @@ resource "aws_iam_role_policy_attachment" "ecr" {
 }
 
 ############################
-# IAM ROLE - CLUSTER AUTOSCALER
-############################
-
-resource "aws_iam_role" "cluster_autoscaler_role" {
-
-  name = "AmazonEKSClusterAutoscalerRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "pods.eks.amazonaws.com"
-      }
-      Action = [
-        "sts:AssumeRole",
-        "sts:TagSession"
-      ]
-    }]
-  })
-
-  tags = {
-    Name = "eks-cluster-autoscaler-role"
-  }
-}
-
-resource "aws_iam_policy" "cluster_autoscaler_policy" {
-
-  name = "AmazonEKSClusterAutoscalerPolicy"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "autoscaling:SetDesiredCapacity",
-          "autoscaling:TerminateInstanceInAutoScalingGroup"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:ResourceTag/k8s.io/cluster-autoscaler/enabled"                     = "true"
-            "aws:ResourceTag/k8s.io/cluster-autoscaler/${aws_eks_cluster.eks.name}" = "owned"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "autoscaling:DescribeAutoScalingGroups",
-          "autoscaling:DescribeAutoScalingInstances",
-          "autoscaling:DescribeLaunchConfigurations",
-          "autoscaling:DescribeScalingActivities",
-          "autoscaling:DescribeTags",
-          "ec2:DescribeImages",
-          "ec2:DescribeInstanceTypes",
-          "ec2:DescribeLaunchTemplateVersions",
-          "ec2:GetInstanceTypesFromInstanceRequirements",
-          "eks:DescribeNodegroup"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = {
-    Name = "eks-cluster-autoscaler-policy"
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "cluster_autoscaler_policy" {
-
-  role       = aws_iam_role.cluster_autoscaler_role.name
-  policy_arn = aws_iam_policy.cluster_autoscaler_policy.arn
-}
-
-############################
 # EKS CLUSTER
 ############################
 
@@ -457,31 +365,7 @@ resource "aws_eks_node_group" "node_group" {
     aws_iam_role_policy_attachment.ecr
   ]
   tags = {
-    Name                                                    = "eks-node-group"
-    "k8s.io/cluster-autoscaler/enabled"                     = "true"
-    "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks.name}" = "owned"
-  }
-}
-
-resource "aws_autoscaling_group_tag" "cluster_autoscaler_enabled" {
-
-  autoscaling_group_name = aws_eks_node_group.node_group.resources[0].autoscaling_groups[0].name
-
-  tag {
-    key                 = "k8s.io/cluster-autoscaler/enabled"
-    value               = "true"
-    propagate_at_launch = false
-  }
-}
-
-resource "aws_autoscaling_group_tag" "cluster_autoscaler_owned" {
-
-  autoscaling_group_name = aws_eks_node_group.node_group.resources[0].autoscaling_groups[0].name
-
-  tag {
-    key                 = "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks.name}"
-    value               = "owned"
-    propagate_at_launch = false
+    Name = "eks-node-group"
   }
 }
 
@@ -625,72 +509,6 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
 
   depends_on = [
     aws_iam_role_policy_attachment.ebs_csi_policy
-  ]
-}
-
-resource "aws_eks_pod_identity_association" "cluster_autoscaler" {
-  cluster_name    = aws_eks_cluster.eks.name
-  namespace       = var.cluster_autoscaler_namespace
-  service_account = var.cluster_autoscaler_service_account_name
-
-  role_arn = aws_iam_role.cluster_autoscaler_role.arn
-
-  depends_on = [
-    aws_eks_addon.pod_identity,
-    aws_iam_role_policy_attachment.cluster_autoscaler_policy
-  ]
-}
-
-resource "helm_release" "cluster_autoscaler" {
-  name       = "cluster-autoscaler"
-  repository = "https://kubernetes.github.io/autoscaler"
-  chart      = "cluster-autoscaler"
-  version    = var.cluster_autoscaler_chart_version
-  namespace  = var.cluster_autoscaler_namespace
-
-  wait    = true
-  timeout = 600
-
-  set {
-    name  = "cloudProvider"
-    value = "aws"
-  }
-
-  set {
-    name  = "awsRegion"
-    value = data.aws_region.current.name
-  }
-
-  set {
-    name  = "autoDiscovery.clusterName"
-    value = aws_eks_cluster.eks.name
-  }
-
-  set {
-    name  = "rbac.serviceAccount.create"
-    value = "true"
-  }
-
-  set {
-    name  = "rbac.serviceAccount.name"
-    value = var.cluster_autoscaler_service_account_name
-  }
-
-  set {
-    name  = "image.tag"
-    value = var.cluster_autoscaler_image_tag
-  }
-
-  set {
-    name  = "extraArgs.expander"
-    value = "least-waste"
-  }
-
-  depends_on = [
-    aws_autoscaling_group_tag.cluster_autoscaler_enabled,
-    aws_autoscaling_group_tag.cluster_autoscaler_owned,
-    aws_eks_node_group.node_group,
-    aws_eks_pod_identity_association.cluster_autoscaler
   ]
 }
 
