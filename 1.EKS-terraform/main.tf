@@ -18,7 +18,8 @@ provider "aws" {
 }
 
 locals {
-  cluster_name = "eksprod"
+  cluster_name        = "eksprod"
+  admin_principal_arn = var.eks_admin_principal_arn != "" ? var.eks_admin_principal_arn : data.aws_caller_identity.current.arn
 
   common_tags = {
     Environment = "dev"
@@ -297,6 +298,11 @@ resource "aws_eks_cluster" "eks" {
   role_arn = aws_iam_role.cluster_role.arn
   version  = var.cluster_version
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   vpc_config {
 
     subnet_ids = [
@@ -314,6 +320,34 @@ resource "aws_eks_cluster" "eks" {
   tags = {
     Name = "eks-cluster"
   }
+}
+
+############################
+# EKS ACCESS
+############################
+
+resource "aws_eks_access_entry" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.eks.name
+  principal_arn = local.admin_principal_arn
+  type          = "STANDARD"
+
+  tags = {
+    Name = "eks-cluster-admin-access-entry"
+  }
+}
+
+resource "aws_eks_access_policy_association" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.eks.name
+  principal_arn = local.admin_principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [
+    aws_eks_access_entry.cluster_admin
+  ]
 }
 
 data "aws_eks_cluster" "eks" {
@@ -411,11 +445,52 @@ resource "aws_autoscaling_group_tag" "node_instance_name" {
   }
 }
 
+############################
+# EC2 IAM ACCESS
+############################
+
+resource "aws_iam_role" "ec2_admin_role" {
+
+  name = "eks-ec2-admin-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  tags = {
+    Name = "eks-ec2-admin-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_admin_access" {
+
+  role       = aws_iam_role.ec2_admin_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+resource "aws_iam_instance_profile" "ec2_admin_profile" {
+
+  name = "eks-ec2-admin-profile"
+  role = aws_iam_role.ec2_admin_role.name
+
+  tags = {
+    Name = "eks-ec2-admin-profile"
+  }
+}
+
 
 resource "aws_instance" "eks" {
   ami                    = "ami-02dfbd4ff395f2a1b"
   instance_type          = "t2.medium"
   subnet_id              = aws_subnet.public1.id
+  iam_instance_profile   = aws_iam_instance_profile.ec2_admin_profile.name
   vpc_security_group_ids = [aws_security_group.allow_all.id]
   root_block_device {
     volume_size = "30"

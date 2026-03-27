@@ -17,6 +17,11 @@ output "cluster_arn" {
   value       = aws_eks_cluster.eks.arn
 }
 
+output "cluster_admin_principal_arn" {
+  description = "IAM principal ARN that Terraform grants EKS cluster admin access to."
+  value       = local.admin_principal_arn
+}
+
 ############################
 # network outputs
 ############################
