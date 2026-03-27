@@ -1,264 +1,282 @@
-# Kubernetes DaemonSet
+# 📘 Kubernetes DaemonSet + Prometheus Setup
 
-This topic is very important in Kubernetes because a `DaemonSet` makes sure one pod runs on every node.
+---
 
-If a new node joins the cluster, Kubernetes automatically creates the DaemonSet pod on that new node too.
+## 📌 What is DaemonSet?
 
-If a node is removed, the pod on that node is also removed automatically.
+A **DaemonSet** ensures that **one pod runs on every node** in the Kubernetes cluster.
 
-## Simple Definition
+* When a **new node joins**, a pod is automatically created
+* When a **node is removed**, the pod is deleted
 
-A `DaemonSet` is a Kubernetes workload object used to run the same pod on all nodes, or on selected nodes.
+---
 
-## Why We Use DaemonSet
+## 🧠 Simple Definition
 
-Normally:
+A **DaemonSet** is a Kubernetes workload used to run the same pod on **all nodes** (or selected nodes).
 
-- `Deployment` runs a fixed number of replicas
-- `StatefulSet` runs stateful applications
-- `DaemonSet` runs one pod per node
+---
 
-This is useful when every node needs the same helper service.
+## ❓ Why We Use DaemonSet
 
-## Real-Time Use Cases
+| Workload    | Purpose                  |
+| ----------- | ------------------------ |
+| Deployment  | Fixed number of replicas |
+| StatefulSet | Stateful applications    |
+| DaemonSet   | One pod per node         |
 
-Common DaemonSet use cases are:
+👉 Use DaemonSet when **every node needs a copy of a service**
 
-- log collection agents like Fluentd or Fluent Bit
-- monitoring agents like Node Exporter
-- security agents
-- storage agents
-- network plugins
+---
 
-These tools must run on every worker node, so `DaemonSet` is the correct choice.
+## 🌍 Real-Time Use Cases
 
-## How DaemonSet Works
+* Log collection → Fluentd / Fluent Bit
+* Monitoring → Node Exporter
+* Security agents
+* Storage agents
+* Network plugins
 
-Suppose your cluster has 3 nodes.
+---
 
-If you create one DaemonSet:
+## ⚙️ How DaemonSet Works
 
-- node 1 gets 1 pod
-- node 2 gets 1 pod
-- node 3 gets 1 pod
+Example:
 
-Total pods = 3
+If your cluster has **3 nodes**:
 
-If one more node is added:
+* Node 1 → 1 pod
+* Node 2 → 1 pod
+* Node 3 → 1 pod
 
-- Kubernetes automatically creates one more DaemonSet pod on that new node
+👉 Total Pods = 3
 
-So the number of pods depends on the number of nodes.
+If a new node is added → **1 more pod is created automatically**
 
-## DaemonSet vs Deployment
+---
 
-`Deployment`
+## 🔄 DaemonSet vs Deployment
 
-- you decide replica count
-- example: 3 replicas, 5 replicas, 10 replicas
+### Deployment
 
-`DaemonSet`
+* You define replica count
+* Example: 3, 5, 10 pods
 
-- Kubernetes decides pod count based on node count
-- one pod per node
+### DaemonSet
 
-## YAML Used In This Example
+* Kubernetes decides pod count
+* One pod per node
 
-Your file:
+---
 
-`daemonset.yaml`
+# 🚀 Prometheus Deployment (Step-by-Step)
 
-creates:
+## 📁 Project Structure
 
-- a DaemonSet named `nginx`
-- a pod with label `app: nginx`
-- one `nginx` container on each node
-- mounts host system paths `/proc` and `/sys`
-
-## Explanation Of This YAML
-
-### apiVersion and kind
-
-```yaml
-apiVersion: apps/v1
-kind: DaemonSet
+```
+k8s/
+ ├── prometheus/
+ │    ├── prometheus-daemonset.yaml
+ │    ├── prometheus-configmap.yaml
+ │    └── service.yaml
 ```
 
-This tells Kubernetes that we are creating a DaemonSet resource.
+---
 
-### metadata
-
-```yaml
-metadata:
-  name: nginx
-```
-
-This is the name of the DaemonSet.
-
-### selector
-
-```yaml
-selector:
-  matchLabels:
-    app: nginx
-```
-
-The selector tells Kubernetes which pods belong to this DaemonSet.
-
-### template
-
-```yaml
-template:
-  metadata:
-    labels:
-      app: nginx
-```
-
-The pod labels must match the selector labels.
-
-### container
-
-```yaml
-containers:
-- name: test-nginx
-  image: nginx
-```
-
-This creates one container using the `nginx` image.
-
-### resources
-
-```yaml
-resources:
-  limits:
-    cpu: 100m
-    memory: 200Mi
-  requests:
-    cpu: 50m
-    memory: 100Mi
-```
-
-This defines the CPU and memory required by the pod.
-
-- `requests` means minimum needed
-- `limits` means maximum allowed
-
-### volume mounts
-
-```yaml
-volumeMounts:
-- name: proc
-  mountPath: /host/proc
-  readOnly: true
-- name: sys
-  mountPath: /host/sys
-  readOnly: true
-```
-
-These lines mount node-level directories inside the container.
-
-This is commonly used by monitoring and system-agent pods.
-
-### hostPath volumes
-
-```yaml
-volumes:
-- name: proc
-  hostPath:
-    path: /proc
-- name: sys
-  hostPath:
-    path: /sys
-```
-
-This means the container gets access to the node's actual `/proc` and `/sys` directories.
-
-## Important Point
-
-In your YAML:
-
-```yaml
-ports:
-- containerPort: 8080
-```
-
-The default `nginx` container usually listens on port `80`, not `8080`.
-
-So for real testing:
-
-- either change `containerPort` to `80`
-- or configure nginx to listen on `8080`
-
-This does not stop DaemonSet learning, but it is good to know.
-
-## Commands To Practice
-
-Create the DaemonSet:
+## ⚙️ Step 1: Navigate to Folder
 
 ```bash
-kubectl apply -f daemonset.yaml
+cd k8s/prometheus
 ```
 
-Check DaemonSet:
+---
+
+## 📄 Step 2: Apply ConfigMap
 
 ```bash
-kubectl get daemonset
+kubectl apply -f prometheus-configmap.yaml
 ```
 
-Check pods:
+Check:
+
+```bash
+kubectl get configmap
+```
+
+---
+
+## 📦 Step 3: Deploy DaemonSet
+
+```bash
+kubectl apply -f prometheus-daemonset.yaml
+```
+
+Check Pods:
+
+```bash
+kubectl get pods -l app=prometheus -o wide
+```
+
+👉 You should see **1 pod per node**
+
+---
+
+## 🌐 Step 4: Create Service
+
+```bash
+kubectl apply -f service.yaml
+```
+
+Check:
+
+```bash
+kubectl get svc prometheus-service
+```
+
+---
+
+## 🔍 Step 5: Get Node IP
+
+```bash
+kubectl get nodes -o wide
+```
+
+---
+
+## 🌍 Step 6: Access Prometheus UI
+
+```
+http://<NODE-IP>:30090
+```
+
+Example:
+
+```
+http://192.168.1.10:30090
+```
+
+---
+
+## 🧪 Step 7: Verify
+
+* Open **Status → Targets**
+* Ensure all targets are **UP**
+
+---
+
+# 🛠️ Useful Commands
+
+### 🔍 Check All Resources
+
+```bash
+kubectl get all -l app=prometheus
+```
+
+### 📦 Check Pods
 
 ```bash
 kubectl get pods -o wide
 ```
 
-This `-o wide` command helps you see on which node each pod is running.
-
-Describe DaemonSet:
+### 📄 Describe Pod
 
 ```bash
-kubectl describe daemonset nginx
+kubectl describe pod <pod-name>
 ```
 
-Delete DaemonSet:
+### 📜 View Logs
 
 ```bash
-kubectl delete -f daemonset.yaml
+kubectl logs <pod-name>
 ```
 
-## How To Verify The Concept
+### ❌ Delete Everything
 
-After applying the DaemonSet:
+```bash
+kubectl delete -f .
+```
 
-1. check your node count
-2. check pod count
-3. compare both
+---
 
-Commands:
+# 🛠️ DaemonSet Commands (Important)
+
+### Check DaemonSet
+
+```bash
+kubectl get daemonset
+```
+
+### Describe DaemonSet
+
+```bash
+kubectl describe daemonset prometheus
+```
+
+### Delete DaemonSet
+
+```bash
+kubectl delete daemonset prometheus
+```
+
+### Delete Using YAML
+
+```bash
+kubectl delete -f prometheus-daemonset.yaml
+```
+
+### Restart DaemonSet
+
+```bash
+kubectl rollout restart daemonset prometheus
+```
+
+### Check Rollout Status
+
+```bash
+kubectl rollout status daemonset prometheus
+```
+
+---
+
+# 🔍 How to Verify DaemonSet Concept
 
 ```bash
 kubectl get nodes
 kubectl get pods -o wide
 ```
 
-You will notice:
+👉 Compare:
 
-- each node gets one DaemonSet pod
+* Number of nodes
+* Number of pods
 
-## Interview Point
+✔️ Result: **Each node has one pod**
 
-A very common interview question is:
+---
 
-"What is the difference between Deployment and DaemonSet?"
+# ⚠️ Notes
 
-Best short answer:
+* NodePort range: **30000–32767**
+* Open port **30090** in firewall
+* Each node runs its own Prometheus instance
 
-- `Deployment` is used when we want a specific number of replicas
-- `DaemonSet` is used when we want one pod on every node
+---
 
-## Summary
+# 🎯 Interview Point
 
-Remember this one line:
+**Q: Difference between Deployment and DaemonSet?**
 
-`DaemonSet = one pod per node`
+✔️ Answer:
 
-Use DaemonSet when your application or agent must run on all nodes in the cluster.
+* Deployment → fixed number of replicas
+* DaemonSet → one pod per node
+
+---
+
+# 🧾 Summary
+
+👉 **DaemonSet = One Pod Per Node**
+
+Use DaemonSet when your application must run on **every node** in the cluster.
+
+---
