@@ -274,3 +274,4 @@ kubectl cluster-info
 - Manual workflow run is required for actual deployment or deletion
 - The S3 bucket must exist before running the workflow
 - Your AWS credentials must have permissions for EKS, EC2, VPC, IAM, Auto Scaling, and S3
+
