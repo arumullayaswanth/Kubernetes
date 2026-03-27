@@ -206,6 +206,110 @@ jobs:
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Before destroy, force cleanup of Kubernetes applications and load balancer resources.
+      - name: Pre-Destroy Kubernetes Cleanup
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
+
+          if ! aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" >/dev/null 2>&1; then
+            echo "Cluster ${CLUSTER_NAME} not found. Skipping Kubernetes cleanup."
+            exit 0
+          fi
+
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+          aws eks update-kubeconfig --region "${{ env.AWS_REGION_VALUE }}" --name "${CLUSTER_NAME}"
+
+          kubectl get ns || true
+          kubectl get svc -A || true
+          kubectl get ingress -A || true
+
+          kubectl get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' > lb-services.txt || true
+          kubectl get ingress -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' > ingress.txt || true
+          kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' > namespaces.txt || true
+
+          while read -r NAMESPACE NAME; do
+            [ -z "${NAMESPACE}" ] && continue
+            kubectl delete ingress "${NAME}" -n "${NAMESPACE}" --ignore-not-found=true || true
+          done < ingress.txt
+
+          while read -r NAMESPACE NAME; do
+            [ -z "${NAMESPACE}" ] && continue
+            kubectl delete svc "${NAME}" -n "${NAMESPACE}" --ignore-not-found=true || true
+          done < lb-services.txt
+
+          kubectl delete deployment,statefulset,daemonset,job,cronjob,pod,service,ingress,pvc --all -n default --ignore-not-found=true || true
+
+          while read -r NAMESPACE; do
+            [ -z "${NAMESPACE}" ] && continue
+            if [ "${NAMESPACE}" = "kube-system" ] || [ "${NAMESPACE}" = "kube-public" ] || [ "${NAMESPACE}" = "kube-node-lease" ] || [ "${NAMESPACE}" = "default" ]; then
+              continue
+            fi
+
+            kubectl delete namespace "${NAMESPACE}" --ignore-not-found=true --wait=false || true
+          done < namespaces.txt
+
+          echo "Waiting for Kubernetes resources, load balancers, and ENIs to start deleting..."
+          sleep 180
+
+          {
+            echo "## Pre-Destroy Cleanup"
+            echo ""
+            echo "- Cluster cleaned before Terraform destroy: ${CLUSTER_NAME}"
+            echo "- LoadBalancer services, ingresses, default workloads, and non-system namespaces were deleted first"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Capture Destroy Subnet IDs
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          terraform output -json private_subnet_ids > private-subnet-ids.json
+          terraform output -json public_subnet_ids > public-subnet-ids.json
+
+          jq -r '.[]' private-subnet-ids.json > subnet-ids.txt
+          jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt
+
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
+        id: terraform_destroy
+        continue-on-error: true
+        run: terraform destroy -auto-approve -no-color
+
+      - name: Cleanup Available Network Interfaces
+        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
+        run: |
+          touch eni-cleanup.txt
+
+          while read -r SUBNET_ID; do
+            [ -z "${SUBNET_ID}" ] && continue
+
+            aws ec2 describe-network-interfaces \
+              --filters "Name=subnet-id,Values=${SUBNET_ID}" "Name=status,Values=available" \
+              --region "${{ env.AWS_REGION_VALUE }}" \
+              --query 'NetworkInterfaces[].NetworkInterfaceId' \
+              --output text >> eni-cleanup.txt
+          done < subnet-ids.txt
+
+          sort -u eni-cleanup.txt -o eni-cleanup.txt
+
+          while read -r ENI_ID; do
+            [ -z "${ENI_ID}" ] && continue
+            echo "Deleting available ENI: ${ENI_ID}"
+            aws ec2 delete-network-interface \
+              --network-interface-id "${ENI_ID}" \
+              --region "${{ env.AWS_REGION_VALUE }}" || true
+          done < eni-cleanup.txt
+
+          ENI_COUNT=$(grep -cve '^\s*$' eni-cleanup.txt || true)
+
+          {
+            echo "## Network Interface Cleanup"
+            echo ""
+            echo "- Available ENIs deleted before destroy retry: ${ENI_COUNT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform Destroy Retry
+        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
         run: terraform destroy -auto-approve -no-color
