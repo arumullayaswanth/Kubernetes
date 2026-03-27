@@ -166,6 +166,45 @@ jobs:
         if: github.event.inputs.action == 'apply'
         run: terraform apply -auto-approve -no-color
 
+      - name: Cluster Connection Summary
+        if: github.event.inputs.action == 'apply'
+        run: |
+          {
+            echo "## How To Connect To Your Cluster After Deployment"
+            echo ""
+            echo "Your current cluster name in this Terraform is:"
+            echo ""
+            echo "\`eksprod\`"
+            echo ""
+            echo "Your current region in this Terraform is:"
+            echo ""
+            echo "\`us-east-1\`"
+            echo ""
+            echo "Update kubeconfig:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "aws eks update-kubeconfig --region us-east-1 --name eksprod"
+            echo "\`\`\`"
+            echo ""
+            echo "Check nodes:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "kubectl get nodes"
+            echo "\`\`\`"
+            echo ""
+            echo "Check all pods:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "kubectl get pods -A"
+            echo "\`\`\`"
+            echo ""
+            echo "Check services:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "kubectl get svc -A"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
         run: terraform destroy -auto-approve -no-color
