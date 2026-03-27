@@ -13,3 +13,9 @@ variable "eks_admin_principal_arn" {
   type        = string
   default     = ""
 }
+
+variable "manage_cluster_admin_access_entry" {
+  description = "Set to true only if you want Terraform to create and manage the EKS cluster admin access entry."
+  type        = bool
+  default     = false
+}

@@ -329,6 +329,8 @@ resource "aws_eks_cluster" "eks" {
 ############################
 
 resource "aws_eks_access_entry" "cluster_admin" {
+  count = var.manage_cluster_admin_access_entry ? 1 : 0
+
   cluster_name  = aws_eks_cluster.eks.name
   principal_arn = local.admin_principal_arn
   type          = "STANDARD"
@@ -339,6 +341,8 @@ resource "aws_eks_access_entry" "cluster_admin" {
 }
 
 resource "aws_eks_access_policy_association" "cluster_admin" {
+  count = var.manage_cluster_admin_access_entry ? 1 : 0
+
   cluster_name  = aws_eks_cluster.eks.name
   principal_arn = local.admin_principal_arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
