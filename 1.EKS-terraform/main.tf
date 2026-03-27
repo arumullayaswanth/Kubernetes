@@ -336,6 +336,32 @@ data "aws_eks_cluster_auth" "eks" {
 # NODE GROUP
 ############################
 
+resource "aws_launch_template" "node_group" {
+
+  name_prefix            = "eks-node-group-"
+  update_default_version = true
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name = "eks-cluster-node"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Name = "eks-cluster-node-volume"
+    }
+  }
+
+  tags = {
+    Name = "eks-node-launch-template"
+  }
+}
+
 resource "aws_eks_node_group" "node_group" {
 
   cluster_name    = aws_eks_cluster.eks.name
@@ -357,6 +383,11 @@ resource "aws_eks_node_group" "node_group" {
     desired_size = 3
     max_size     = 10
     min_size     = 3
+  }
+
+  launch_template {
+    id      = aws_launch_template.node_group.id
+    version = aws_launch_template.node_group.latest_version
   }
 
   depends_on = [
