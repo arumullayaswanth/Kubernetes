@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service                  # Exposes Pods inside/outside cluster
+
+metadata:
+  name: prometheus-service     # Service name
+  labels:
+    app: prometheus
+
+spec:
+  type: NodePort               # Exposes service on each node IP
+
+  selector:
+    app: prometheus            # Targets Prometheus Pods (must match labels)
+
+  ports:
+  - name: http
+    port: 9090                 # Service port (inside cluster)
+    targetPort: 9090           # Container port
+    nodePort: 30090            # External port (range: 30000–32767)
