@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: DaemonSet                   # Run one Prometheus instance per node
+
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+
+  updateStrategy:
+    type: RollingUpdate           # Safe updates
+
+  template:
+    metadata:
+      labels:
+        app: prometheus
+
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.52.0   # Use a fixed version for stability
+        imagePullPolicy: IfNotPresent
+
+        args:
+        - "--config.file=/etc/prometheus/prometheus.yml"   # Config file path
+        - "--storage.tsdb.path=/prometheus"                # Data storage path
+        - "--storage.tsdb.retention.time=24h"              # Retention period
+
+        ports:
+        - containerPort: 9090          # Prometheus UI/API port
+
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534             # nobody user
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false   # Prometheus needs write access
+
+        volumeMounts:
+        - name: config
+          mountPath: /etc/prometheus       # Config directory
+
+        - name: storage
+          mountPath: /prometheus           # Data storage
+
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9090
+          initialDelaySeconds: 15
+          periodSeconds: 20
+
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9090
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-config        # ConfigMap reference
+
+      - name: storage
+        emptyDir: {}                     # Ephemeral storage (use PVC in real prod)
+
+      terminationGracePeriodSeconds: 30
