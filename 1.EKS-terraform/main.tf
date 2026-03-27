@@ -15,9 +15,25 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+
+  default_tags {
+    tags = local.common_tags
+  }
 }
 
 data "aws_region" "current" {}
+
+locals {
+  cluster_name = "eksprod"
+
+  common_tags = {
+    Environment = "dev"
+    Project     = "eks-project"
+    Owner       = "yaswanth"
+    ManagedBy   = "Terraform"
+    Cluster     = local.cluster_name
+  }
+}
 
 provider "helm" {
   kubernetes {
@@ -45,6 +61,10 @@ resource "aws_vpc" "eks_vpc" {
 resource "aws_internet_gateway" "igw" {
 
   vpc_id = aws_vpc.eks_vpc.id
+
+  tags = {
+    Name = "eks-igw"
+  }
 }
 
 ############################
@@ -57,6 +77,11 @@ resource "aws_subnet" "public1" {
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
+
+  tags = {
+    Name                     = "eks-public-subnet-1"
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
 resource "aws_subnet" "public2" {
@@ -65,6 +90,11 @@ resource "aws_subnet" "public2" {
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
+
+  tags = {
+    Name                     = "eks-public-subnet-2"
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
 resource "aws_subnet" "private1" {
@@ -72,6 +102,11 @@ resource "aws_subnet" "private1" {
   vpc_id            = aws_vpc.eks_vpc.id
   cidr_block        = "10.0.3.0/24"
   availability_zone = "us-east-1a"
+
+  tags = {
+    Name                              = "eks-private-subnet-1"
+    "kubernetes.io/role/internal-elb" = "1"
+  }
 }
 
 resource "aws_subnet" "private2" {
@@ -79,6 +114,11 @@ resource "aws_subnet" "private2" {
   vpc_id            = aws_vpc.eks_vpc.id
   cidr_block        = "10.0.4.0/24"
   availability_zone = "us-east-1b"
+
+  tags = {
+    Name                              = "eks-private-subnet-2"
+    "kubernetes.io/role/internal-elb" = "1"
+  }
 }
 
 ############################
@@ -87,12 +127,20 @@ resource "aws_subnet" "private2" {
 
 resource "aws_eip" "nat" {
   domain = "vpc"
+
+  tags = {
+    Name = "eks-nat-eip"
+  }
 }
 
 resource "aws_nat_gateway" "nat" {
 
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public1.id
+
+  tags = {
+    Name = "eks-nat-gateway"
+  }
 }
 
 ############################
@@ -106,6 +154,10 @@ resource "aws_route_table" "public" {
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "eks-public-route-table"
   }
 }
 
@@ -128,6 +180,10 @@ resource "aws_route_table" "private" {
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "eks-private-route-table"
   }
 }
 
@@ -191,6 +247,10 @@ resource "aws_iam_role" "cluster_role" {
       Action = "sts:AssumeRole"
     }]
   })
+
+  tags = {
+    Name = "eks-cluster-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "cluster_policy" {
@@ -217,6 +277,10 @@ resource "aws_iam_role" "worker_role" {
       Action = "sts:AssumeRole"
     }]
   })
+
+  tags = {
+    Name = "eks-worker-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "worker_node" {
@@ -258,6 +322,10 @@ resource "aws_iam_role" "cluster_autoscaler_role" {
       ]
     }]
   })
+
+  tags = {
+    Name = "eks-cluster-autoscaler-role"
+  }
 }
 
 resource "aws_iam_policy" "cluster_autoscaler_policy" {
@@ -299,6 +367,10 @@ resource "aws_iam_policy" "cluster_autoscaler_policy" {
       }
     ]
   })
+
+  tags = {
+    Name = "eks-cluster-autoscaler-policy"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "cluster_autoscaler_policy" {
@@ -313,7 +385,7 @@ resource "aws_iam_role_policy_attachment" "cluster_autoscaler_policy" {
 
 resource "aws_eks_cluster" "eks" {
 
-  name     = "eksprod"
+  name     = local.cluster_name
   role_arn = aws_iam_role.cluster_role.arn
   version  = var.cluster_version
 
@@ -330,6 +402,10 @@ resource "aws_eks_cluster" "eks" {
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy
   ]
+
+  tags = {
+    Name = "eks-cluster"
+  }
 }
 
 data "aws_eks_cluster" "eks" {
@@ -381,10 +457,7 @@ resource "aws_eks_node_group" "node_group" {
     aws_iam_role_policy_attachment.ecr
   ]
   tags = {
-    Name                                                    = "eks-node"
-    Environment                                             = "dev"
-    Project                                                 = "eks-project"
-    Owner                                                   = "yaswanth"
+    Name                                                    = "eks-node-group"
     "k8s.io/cluster-autoscaler/enabled"                     = "true"
     "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks.name}" = "owned"
   }
@@ -409,6 +482,17 @@ resource "aws_autoscaling_group_tag" "cluster_autoscaler_owned" {
     key                 = "k8s.io/cluster-autoscaler/${aws_eks_cluster.eks.name}"
     value               = "owned"
     propagate_at_launch = false
+  }
+}
+
+resource "aws_autoscaling_group_tag" "node_instance_name" {
+
+  autoscaling_group_name = aws_eks_node_group.node_group.resources[0].autoscaling_groups[0].name
+
+  tag {
+    key                 = "Name"
+    value               = "eks-cluster-node"
+    propagate_at_launch = true
   }
 }
 
@@ -520,6 +604,10 @@ resource "aws_iam_role" "ebs_csi_role" {
       ]
     }]
   })
+
+  tags = {
+    Name = "eks-ebs-csi-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
