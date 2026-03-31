@@ -161,7 +161,7 @@ RESET REPLICA ALL;
 - ALWAYS use latest output from master
 - `SOURCE_LOG_FILE` → mysql-bin.000007
 - `SOURCE_LOG_POS` → 157
-- example : SOURCE_LOG_FILE='mysql-bin.000007', SOURCE_LOG_POS=157;
+- example : **SOURCE_LOG_FILE='mysql-bin.000007', SOURCE_LOG_POS=157;**
 
 ```sql
 CHANGE REPLICATION SOURCE TO
