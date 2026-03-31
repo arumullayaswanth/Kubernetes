@@ -6,20 +6,20 @@
 kubectl apply -f mysql-deployment.yml
 ```
 
-## 🔍 **Step 2 — Check Pod**
+##  **Step 2 — Check Pod**
 
 ```bash
 kubectl get pods
 ```
 
-👉 Example:
+Example:
 
 ```bash
 mysql-deploy-7d9f8c6b5-xk92a
 ```
 
 
-## 🧪 **Step 3 — Insert Data (Important Proof)**
+##  **Step 3 — Insert Data (Important Proof)**
 
 ### ▶️ Command:
 
@@ -27,32 +27,32 @@ mysql-deploy-7d9f8c6b5-xk92a
 kubectl exec -it <pod-name> -- mysql -uroot -ppassword
 ```
 
-👉 Output:
+Output:
 
 ```
 1 | yaswanth
 ```
 
 
-## 💣 **Step 4 — Break the Pod**
+##  **Step 4 — Break the Pod**
 
 ```bash
 kubectl delete pod <pod-name>
 ```
 
-## 🔍 **Step 5 — Check New Pod**
+##  **Step 5 — Check New Pod**
 
 ```bash
 kubectl get pods
 ```
 
-👉 New pod:
+New pod:
 
 ```bash
 mysql-deploy-xxxxx-new
 ```
 
-## 💥 **Step 6 — Check Data Again**
+##  **Step 6 — Check Data Again**
 
 ```bash
 kubectl exec -it <new-pod> -- mysql -uroot -ppassword
@@ -62,8 +62,8 @@ kubectl exec -it <new-pod> -- mysql -uroot -ppassword
 SHOW DATABASES;
 ```
 
-👉 Our database is gone
-👉 Our table is gone
-👉 Our data is gone
+- Our database is gone
+- Our table is gone
+- Our data is gone
 
 This is exactly why Deployments fail for databases.”
