@@ -1,4 +1,4 @@
-
+![Deployment Image](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/0d5649ba5541ee4ee50c26607673254452abca43/14.2-statefull-headless/Stateless%20Deployment/deployment%20images.png)
 
 ### ▶️ Command:
 
