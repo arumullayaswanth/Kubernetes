@@ -1,45 +1,47 @@
-Got it — let’s build a **complete end-to-end production-style MySQL StatefulSet guide** in a clean `.md` format, with:
+Love it — let’s lock this in properly 🔥
+Here’s your **complete end-to-end production-style guide** in clean `.md` format with:
 
 * ✅ Step-by-step setup
 * ✅ Fully commented YAML
-* ✅ Testing steps
+* ✅ Debug + testing steps
 * ✅ Replication setup
-* ✅ Verification
+* ✅ Real-world troubleshooting
 
 ---
 
-# 📘 `mysql-statefulset-production.md`
+# 📘 `mysql-statefulset-production-complete.md`
 
 ---
 
-## 🚀 1. Prerequisites
-
-* Kubernetes cluster (EKS or local)
-* `kubectl` configured
-* Default StorageClass available (gp2/gp3 in AWS)
-
-Check:
+# 🚀 1. Prerequisites
 
 ```bash
+# Check cluster
+kubectl get nodes
+
+# Check storage class (EBS in EKS)
 kubectl get storageclass
 ```
 
+Expected:
+
+```text
+gp2 / gp3 present
+```
+
 ---
 
-## 🔐 2. Create Secret (for MySQL password)
+# 🔐 2. Create Secret (MySQL root password)
 
 ```yaml
-# mysql-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysql-secret
+    name: mysecret
 type: Opaque
-stringData:
-  ROOT_PASSWORD: MyStrongPassword123  # change this
+data:
+   ROOT_PASSWORD: cGFzc3dvcmQ=
 ```
-
-Apply:
 
 ```bash
 kubectl apply -f mysql-secret.yaml
@@ -47,27 +49,21 @@ kubectl apply -f mysql-secret.yaml
 
 ---
 
-## 🌐 3. Headless Service (for stable DNS)
+# 🌐 3. Headless Service (VERY IMPORTANT for DNS)
 
 ```yaml
-# -------------------------------
-# Headless Service (for DNS)
-# -------------------------------
+# mysql-headless-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: mysql
 spec:
-  clusterIP: None   # REQUIRED for StatefulSet stable DNS
+  clusterIP: None              # 🔥 REQUIRED for StatefulSet DNS
   selector:
     app: mysql
   ports:
     - port: 3306
-
----
 ```
-
-Apply:
 
 ```bash
 kubectl apply -f mysql-headless-service.yaml
@@ -75,7 +71,7 @@ kubectl apply -f mysql-headless-service.yaml
 
 ---
 
-## ⚙️ 4. ConfigMap (MySQL config)
+# ⚙️ 4. ConfigMap (MySQL config)
 
 ```yaml
 # mysql-config.yaml
@@ -86,11 +82,9 @@ metadata:
 data:
   my.cnf: |
     [mysqld]
-    log-bin=mysql-bin        # Enable binary logs (needed for replication)
+    log-bin=mysql-bin        # Enable binary logging (required for replication)
     binlog-format=ROW        # Safer replication format
 ```
-
-Apply:
 
 ```bash
 kubectl apply -f mysql-config.yaml
@@ -98,19 +92,17 @@ kubectl apply -f mysql-config.yaml
 
 ---
 
-## 🗄️ 5. StatefulSet (PRODUCTION VERSION)
+# 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
 
 ```yaml
-# -------------------------------
-# MySQL StatefulSet
-# -------------------------------
+# mysql-statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
 spec:
-  serviceName: mysql   # Must match headless service
-  replicas: 3          # Number of MySQL pods
+  serviceName: mysql            # Must match headless service
+  replicas: 3                   # 3 MySQL pods
 
   selector:
     matchLabels:
@@ -129,7 +121,7 @@ spec:
         ports:
         - containerPort: 3306
 
-        # 🔐 Use Kubernetes Secret for password
+        # 🔐 Inject password from Secret
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
@@ -137,65 +129,63 @@ spec:
               name: mysql-secret
               key: ROOT_PASSWORD
 
-        # 🧠 Dynamic server-id for replication
+        # 🧠 Dynamic server-id (CRITICAL for replication)
         command:
         - sh
         - -c
         - |
           ordinal=$(hostname | awk -F'-' '{print $NF}')
+          SERVER_ID=$((100 + ordinal))
+
           echo "[mysqld]" > /etc/mysql/conf.d/server-id.cnf
-          echo "server-id=$((100 + ordinal))" >> /etc/mysql/conf.d/server-id.cnf
+          echo "server-id=${SERVER_ID}" >> /etc/mysql/conf.d/server-id.cnf
           echo "log-bin=mysql-bin" >> /etc/mysql/conf.d/server-id.cnf
+          echo "binlog-format=ROW" >> /etc/mysql/conf.d/server-id.cnf
+
+          echo "===== GENERATED CONFIG ====="
+          cat /etc/mysql/conf.d/server-id.cnf
+
           exec docker-entrypoint.sh mysqld
 
-        # 📦 Mount volumes
+        # 📦 Mount storage + config
         volumeMounts:
         - name: mysql-data
-          mountPath: /var/lib/mysql   # MySQL data directory
+          mountPath: /var/lib/mysql
         - name: mysql-config
-          mountPath: /etc/mysql/conf.d  # MySQL config
+          mountPath: /etc/mysql/conf.d
 
         # ❤️ Health checks
         readinessProbe:
           exec:
             command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
           initialDelaySeconds: 10
-          periodSeconds: 5
 
         livenessProbe:
           exec:
             command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
           initialDelaySeconds: 30
-          periodSeconds: 10
 
-        # ⚙️ Resource limits
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "500m"
-            memory: "1Gi"
-
-      # 🔥 FIX: Define ConfigMap volume (this was missing!)
+      # 🔥 Mount ConfigMap (FIXED ISSUE)
       volumes:
       - name: mysql-config
         configMap:
           name: mysql-config
 
-  # 💾 Each pod gets its OWN EBS volume
+  # 💾 Each pod gets its own EBS volume
   volumeClaimTemplates:
   - metadata:
       name: mysql-data
     spec:
       accessModes: ["ReadWriteOnce"]
-      storageClassName: gp2   # your storageclass
+      storageClassName: gp2
       resources:
         requests:
           storage: 5Gi
 ```
 
-Apply:
+---
+
+## ▶️ Apply StatefulSet
 
 ```bash
 kubectl apply -f mysql-statefulset.yaml
@@ -203,10 +193,10 @@ kubectl apply -f mysql-statefulset.yaml
 
 ---
 
-## 🔍 6. Verify Deployment
+# 🔍 6. Verify Pods
 
 ```bash
-kubectl get pods
+kubectl get pods -w
 ```
 
 Expected:
@@ -219,17 +209,48 @@ mysql-2   Running
 
 ---
 
-## 🧪 7. Test MySQL
-
-### Connect to mysql-0 (master)
+# 🧪 7. Verify server-id (CRITICAL)
 
 ```bash
-kubectl exec -it mysql-0 -- mysql -uroot -p
+kubectl exec -it mysql-0 -- mysql -uroot -p -e "SHOW VARIABLES LIKE 'server_id';"
+kubectl exec -it mysql-1 -- mysql -uroot -p -e "SHOW VARIABLES LIKE 'server_id';"
+```
+
+Expected:
+
+```text
+mysql-0 → 100
+mysql-1 → 101
+mysql-2 → 102
 ```
 
 ---
 
-### Create DB & table
+# 🧪 8. Test DNS
+
+```bash
+kubectl run dns-test --image=busybox:1.28 -it --rm -- sh
+```
+
+Inside:
+
+```sh
+nslookup mysql-0.mysql
+```
+
+Expected:
+
+```text
+mysql-0.mysql → pod IP
+```
+
+---
+
+# 🧪 9. Create Database (MASTER)
+
+```bash
+kubectl exec -it mysql-0 -- mysql -uroot -p
+```
 
 ```sql
 CREATE DATABASE prod;
@@ -245,40 +266,45 @@ INSERT INTO users VALUES (1, 'stateful');
 
 ---
 
-## 🔁 8. Setup Replication (IMPORTANT)
+# 🔁 10. Setup Replication
 
-### Step 1: Create replication user (on mysql-0)
+---
+
+## Step 1 — Create replication user
 
 ```sql
-CREATE USER 'repl'@'%' IDENTIFIED BY 'replpass';
+CREATE USER 'repl'@'%' IDENTIFIED WITH mysql_native_password BY 'replpass';
 GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
 FLUSH PRIVILEGES;
 ```
 
 ---
 
-### Step 2: Get master log info
+## Step 2 — Get master log
 
 ```sql
 SHOW MASTER STATUS;
 ```
 
-Example output:
+Example:
 
 ```text
-File: mysql-bin.000001
-Position: 157
+mysql-bin.000001
+157
 ```
 
 ---
 
-### Step 3: Configure replica (mysql-1)
+## Step 3 — Configure replica
 
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
 ```
 
 ```sql
+STOP REPLICA;
+RESET REPLICA ALL;
+
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST='mysql-0.mysql',
   SOURCE_USER='repl',
@@ -291,13 +317,13 @@ START REPLICA;
 
 ---
 
-### Step 4: Verify replication
+# 🔍 11. Verify Replication
 
 ```sql
 SHOW REPLICA STATUS\G;
 ```
 
-Look for:
+Expected:
 
 ```text
 Replica_IO_Running: Yes
@@ -306,32 +332,35 @@ Replica_SQL_Running: Yes
 
 ---
 
-## 🧪 9. Test Replication
+# 🧪 12. Final Data Test
 
-### Insert in master
+---
+
+## Insert in master
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p
 ```
 
 ```sql
-USE prod;
-INSERT INTO users VALUES (2, 'replication-test');
+INSERT INTO prod.users VALUES (2, 'replication-test');
 ```
 
 ---
 
-### Check in replica
+## Check in replica
 
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
 ```
 
 ```sql
-SELECT * FROM users;
+SELECT * FROM prod.users;
 ```
 
-✅ You should see:
+---
+
+## ✅ Expected
 
 ```text
 1 stateful
@@ -340,22 +369,7 @@ SELECT * FROM users;
 
 ---
 
-## 🌐 10. Test DNS (StatefulSet feature)
-
-```bash
-kubectl run test --image=busybox:1.28 -it --rm -- sh
-```
-
-Inside:
-
-```sh
-nslookup mysql-0.mysql
-nslookup mysql-1.mysql
-```
-
----
-
-## 🧹 11. Cleanup
+# 🧹 13. Cleanup
 
 ```bash
 kubectl delete -f .
@@ -363,29 +377,3 @@ kubectl delete -f .
 
 ---
 
-# 🎯 Final Summary
-
-You now have:
-
-* ✅ Stateful MySQL cluster
-* ✅ Persistent storage (EBS)
-* ✅ Stable DNS
-* ✅ Replication (master → replica)
-* ✅ Production-ready config
-
----
-
-# 🚀 Next Steps (optional)
-
-If you want to go further:
-
-* 🔄 Auto failover (MySQL Operator)
-* 📊 Monitoring (Prometheus + Grafana)
-* 💾 Automated backups (CronJob)
-* 🌐 External access (LoadBalancer)
-
----
-
-If you want, I can next give you:
-👉 **Helm-based production MySQL (1 command setup)**
-👉 **Auto replication YAML (no manual SQL)**
