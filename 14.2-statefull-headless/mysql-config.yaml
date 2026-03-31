@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+data:
+  my.cnf: |
+    [mysqld]
+    log-bin=mysql-bin        # Enable binary logging (required for replication)
+    binlog-format=ROW        # Safer replication format
