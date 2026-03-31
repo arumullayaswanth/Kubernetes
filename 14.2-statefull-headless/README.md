@@ -20,17 +20,6 @@ gp2 / gp3 present
 
 # 🔐 2. Create Secret (MySQL root password)
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-secret  # Name of the secret
-type: Opaque
-data:
-  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=  # Base64 encoded value of "password"
-
-```
-
 ```bash
 kubectl apply -f mysql-secret.yaml
 ```
@@ -39,20 +28,6 @@ kubectl apply -f mysql-secret.yaml
 
 # 🌐 3. Headless Service (VERY IMPORTANT for DNS)
 
-```yaml
-# mysql-headless-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-spec:
-  clusterIP: None              # 🔥 REQUIRED for StatefulSet DNS
-  selector:
-    app: mysql
-  ports:
-    - port: 3306
-```
-
 ```bash
 kubectl apply -f mysql-headless-service.yaml
 ```
@@ -60,87 +35,6 @@ kubectl apply -f mysql-headless-service.yaml
 ---
 
 # 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
-
-```yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: mysql
-spec:
-  serviceName: mysql
-  replicas: 3
-
-  selector:
-    matchLabels:
-      app: mysql
-
-  template:
-    metadata:
-      labels:
-        app: mysql
-
-    spec:
-      containers:
-      - name: mysql
-        image: mysql:8.0
-
-        ports:
-        - containerPort: 3306
-
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_ROOT_PASSWORD
-
-        command:
-        - sh
-        - -c
-        - |
-          echo "Starting MySQL with dynamic server-id..."
-
-          ordinal=$(hostname | awk -F'-' '{print $NF}')
-          SERVER_ID=$((100 + ordinal))
-
-          echo "[mysqld]" > /etc/mysql/conf.d/server-id.cnf
-          echo "server-id=${SERVER_ID}" >> /etc/mysql/conf.d/server-id.cnf
-          echo "log-bin=mysql-bin" >> /etc/mysql/conf.d/server-id.cnf
-          echo "binlog-format=ROW" >> /etc/mysql/conf.d/server-id.cnf
-
-          echo "===== GENERATED CONFIG ====="
-          cat /etc/mysql/conf.d/server-id.cnf
-
-          exec docker-entrypoint.sh mysqld
-
-        volumeMounts:
-        - name: mysql-data
-          mountPath: /var/lib/mysql
-
-        readinessProbe:
-          exec:
-            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
-          initialDelaySeconds: 10
-          periodSeconds: 5
-
-        livenessProbe:
-          exec:
-            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
-          initialDelaySeconds: 30
-          periodSeconds: 10
-
-  volumeClaimTemplates:
-  - metadata:
-      name: mysql-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: gp2   # keep gp2 since your cluster has it
-      resources:
-        requests:
-          storage: 5Gi
-```
-
----
 
 ## ▶️ Apply StatefulSet
 
