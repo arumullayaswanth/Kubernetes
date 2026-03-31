@@ -27,7 +27,7 @@ metadata:
   name: mysql-secret  # Name of the secret
 type: Opaque
 data:
-  ROOT_PASSWORD: cGFzc3dvcmQ=  # Base64 encoded value of "password"
+  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=  # Base64 encoded value of "password"
 
 ```
 
