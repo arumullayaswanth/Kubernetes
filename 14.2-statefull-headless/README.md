@@ -1,17 +1,4 @@
-Love it — let’s lock this in properly 🔥
-Here’s your **complete end-to-end production-style guide** in clean `.md` format with:
 
-* ✅ Step-by-step setup
-* ✅ Fully commented YAML
-* ✅ Debug + testing steps
-* ✅ Replication setup
-* ✅ Real-world troubleshooting
-
----
-
-# 📘 `mysql-statefulset-production-complete.md`
-
----
 
 # 🚀 1. Prerequisites
 
