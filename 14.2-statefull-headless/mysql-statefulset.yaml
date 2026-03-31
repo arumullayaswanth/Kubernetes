@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  serviceName: mysql            # Must match headless service
+  replicas: 3                   # 3 MySQL pods
+
+  selector:
+    matchLabels:
+      app: mysql
+
+  template:
+    metadata:
+      labels:
+        app: mysql
+
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+
+        ports:
+        - containerPort: 3306
+
+        # 🔐 Inject password from Secret
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: ROOT_PASSWORD
+
+        # 🧠 Dynamic server-id (CRITICAL for replication)
+        command:
+        - sh
+        - -c
+        - |
+          ordinal=$(hostname | awk -F'-' '{print $NF}')
+          SERVER_ID=$((100 + ordinal))
+
+          echo "[mysqld]" > /etc/mysql/conf.d/server-id.cnf
+          echo "server-id=${SERVER_ID}" >> /etc/mysql/conf.d/server-id.cnf
+          echo "log-bin=mysql-bin" >> /etc/mysql/conf.d/server-id.cnf
+          echo "binlog-format=ROW" >> /etc/mysql/conf.d/server-id.cnf
+
+          echo "===== GENERATED CONFIG ====="
+          cat /etc/mysql/conf.d/server-id.cnf
+
+          exec docker-entrypoint.sh mysqld
+
+        # 📦 Mount storage + config
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-config
+          mountPath: /etc/mysql/conf.d
+
+        # ❤️ Health checks
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
+          initialDelaySeconds: 10
+
+        livenessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
+          initialDelaySeconds: 30
+
+      # 🔥 Mount ConfigMap 
+      volumes:
+      - name: mysql-config
+        configMap:
+          name: mysql-config
+
+  # 💾 Each pod gets its own EBS volume
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp2
+      resources:
+        requests:
+          storage: 5Gi
