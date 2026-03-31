@@ -1,6 +1,6 @@
 
 
-# 🚀 1. Prerequisites
+## 🚀 1. Prerequisites
 
 ```bash
 # Check cluster
@@ -18,7 +18,7 @@ gp2 / gp3 present
 
 ---
 
-# 🔐 2. Create Secret (MySQL root password)
+## 🔐 2. Create Secret (MySQL root password)
 
 ```bash
 kubectl apply -f mysql-secret.yaml
@@ -26,7 +26,7 @@ kubectl apply -f mysql-secret.yaml
 
 ---
 
-# 🌐 3. Headless Service (VERY IMPORTANT for DNS)
+## 🌐 3. Headless Service (VERY IMPORTANT for DNS)
 
 ```bash
 kubectl apply -f mysql-headless-service.yaml
@@ -34,9 +34,9 @@ kubectl apply -f mysql-headless-service.yaml
 
 ---
 
-# 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
+## 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
 
-## ▶️ Apply StatefulSet
+#### ▶️ Apply StatefulSet
 
 ```bash
 kubectl apply -f mysql-statefulset.yaml
@@ -44,7 +44,7 @@ kubectl apply -f mysql-statefulset.yaml
 
 ---
 
-# 🔍 6. Verify Pods
+## 🔍 6. Verify Pods
 
 ```bash
 kubectl get pods -w
@@ -60,7 +60,7 @@ mysql-2   Running
 
 ---
 
-# 🧪 7. Verify server-id (CRITICAL)
+## 🧪 7. Verify server-id (CRITICAL)
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p -e "SHOW VARIABLES LIKE 'server_id';"
@@ -77,7 +77,7 @@ mysql-2 → 102
 
 ---
 
-# 🧪 8. Test DNS
+## 🧪 8. Test DNS
 
 ```bash
 kubectl run dns-test --image=busybox:1.28 -it --rm -- sh
@@ -97,7 +97,7 @@ mysql-0.mysql → pod IP
 
 ---
 
-# 🧪 9. Create Database (MASTER)
+## 🧪 9. Create Database (MASTER)
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p
@@ -117,11 +117,11 @@ INSERT INTO users VALUES (1, 'stateful');
 
 ---
 
-# 🔁 10. Setup Replication
+## 🔁 10. Setup Replication
 
 ---
 
-## Step 1 — Create replication user
+### Step 1 — Create replication user
 
 ```sql
 CREATE USER 'repl'@'%' IDENTIFIED WITH mysql_native_password BY 'replpass';
@@ -131,7 +131,7 @@ FLUSH PRIVILEGES;
 
 ---
 
-## Step 2 — Get master log
+### Step 2 — Get master log
 
 ```sql
 SHOW MASTER STATUS;
@@ -139,36 +139,45 @@ SHOW MASTER STATUS;
 
 Example:
 
-```text
-mysql-bin.000001
-157
-```
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | ...                                          |
++------------------+----------+----------------------------------------------+
+| mysql-bin.000007 |      157 | ...                                          |
++------------------+----------+----------------------------------------------+
 
----
+- `SOURCE_LOG_FILE` → mysql-bin.000007
+- `SOURCE_LOG_POS` → 157
 
-## Step 3 — Configure replica
+### Step 3 — Configure replica
 
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
 ```
-
 ```sql
 STOP REPLICA;
 RESET REPLICA ALL;
+```
+- ALWAYS use latest output from master
+- `SOURCE_LOG_FILE` → mysql-bin.000007
+- `SOURCE_LOG_POS` → 157
+- example : SOURCE_LOG_FILE='mysql-bin.000007', SOURCE_LOG_POS=157;
 
+```sql
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST='mysql-0.mysql',
   SOURCE_USER='repl',
   SOURCE_PASSWORD='replpass',
-  SOURCE_LOG_FILE='mysql-bin.000007',
-  SOURCE_LOG_POS=157;
+  SOURCE_LOG_FILE='<PASTE_FILE>',
+  SOURCE_LOG_POS=<PASTE_POS>;
+```
 
+```sql
 START REPLICA;
 ```
 
 ---
 
-# 🔍 11. Verify Replication
+## 🔍 11. Verify Replication
 
 ```sql
 SHOW REPLICA STATUS\G;
@@ -183,11 +192,11 @@ Replica_SQL_Running: Yes
 
 ---
 
-# 🧪 12. Final Data Test
+### 🧪 12. Final Data Test
 
 ---
 
-## Insert in master
+#### Insert in master
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p
@@ -200,7 +209,7 @@ INSERT INTO users VALUES (10, 'success');
 
 ---
 
-## Check in replica
+### Check in replica
 
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
@@ -220,7 +229,7 @@ SELECT * FROM prod.users;
 
 ---
 
-## ✅ Expected
+### ✅ Expected
 
 ```text
 1 stateful
