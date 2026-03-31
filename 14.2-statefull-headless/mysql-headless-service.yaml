@@ -1,0 +1,11 @@
+# mysql-headless-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  clusterIP: None              # 🔥 REQUIRED for StatefulSet DNS
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
