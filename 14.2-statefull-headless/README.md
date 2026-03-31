@@ -332,7 +332,15 @@ INSERT INTO users VALUES (10, 'success');
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
 ```
+```sql
+CREATE DATABASE IF NOT EXISTS prod;
+USE prod;
 
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY,
+  name VARCHAR(50)
+);
+```
 ```sql
 SELECT * FROM prod.users;
 ```
