@@ -154,28 +154,25 @@ Example:
 ```bash
 kubectl exec -it mysql-1 -- mysql -uroot -p
 ```
-```sql
-STOP REPLICA;
-RESET REPLICA ALL;
-```
 - ALWAYS use latest output from master
 - `SOURCE_LOG_FILE` → mysql-bin.000007
 - `SOURCE_LOG_POS` → 157
 - example : **SOURCE_LOG_FILE='mysql-bin.000007', SOURCE_LOG_POS=157;**
 
+
 ```sql
+STOP REPLICA;
+RESET REPLICA ALL;
+
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST='mysql-0.mysql',
   SOURCE_USER='repl',
   SOURCE_PASSWORD='replpass',
-  SOURCE_LOG_FILE='<PASTE_FILE>',
-  SOURCE_LOG_POS=<PASTE_POS>;
-```
+  SOURCE_LOG_FILE='mysql-bin.000003',
+  SOURCE_LOG_POS=1545;   
 
-```sql
 START REPLICA;
 ```
-
 ---
 
 ## 🔍 11. Verify Replication
