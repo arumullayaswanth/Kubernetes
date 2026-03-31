@@ -24,10 +24,11 @@ gp2 / gp3 present
 apiVersion: v1
 kind: Secret
 metadata:
-    name: mysecret
+  name: mysql-secret  # Name of the secret
 type: Opaque
 data:
-   ROOT_PASSWORD: cGFzc3dvcmQ=
+  ROOT_PASSWORD: cGFzc3dvcmQ=  # Base64 encoded value of "password"
+
 ```
 
 ```bash
