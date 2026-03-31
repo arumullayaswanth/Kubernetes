@@ -201,8 +201,7 @@ kubectl exec -it mysql-0 -- mysql -uroot -p
 ```
 
 ```sql
-USE prod;
-INSERT INTO users VALUES (10, 'success');
+INSERT INTO prod.users VALUES (200, 'final-final');
 ```
 
 ---
