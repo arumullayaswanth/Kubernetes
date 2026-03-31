@@ -83,14 +83,13 @@ kubectl apply -f mysql-config.yaml
 # 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
 
 ```yaml
-# mysql-statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
 spec:
-  serviceName: mysql            # Must match headless service
-  replicas: 3                   # 3 MySQL pods
+  serviceName: mysql
+  replicas: 3
 
   selector:
     matchLabels:
@@ -109,19 +108,19 @@ spec:
         ports:
         - containerPort: 3306
 
-        # 🔐 Inject password from Secret
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mysql-secret
-              key: ROOT_PASSWORD
+              key: MYSQL_ROOT_PASSWORD
 
-        # 🧠 Dynamic server-id (CRITICAL for replication)
         command:
         - sh
         - -c
         - |
+          echo "Starting MySQL with dynamic server-id..."
+
           ordinal=$(hostname | awk -F'-' '{print $NF}')
           SERVER_ID=$((100 + ordinal))
 
@@ -135,37 +134,28 @@ spec:
 
           exec docker-entrypoint.sh mysqld
 
-        # 📦 Mount storage + config
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql
-        - name: mysql-config
-          mountPath: /etc/mysql/conf.d
 
-        # ❤️ Health checks
         readinessProbe:
           exec:
             command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
           initialDelaySeconds: 10
+          periodSeconds: 5
 
         livenessProbe:
           exec:
             command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
           initialDelaySeconds: 30
+          periodSeconds: 10
 
-      # 🔥 Mount ConfigMap (FIXED ISSUE)
-      volumes:
-      - name: mysql-config
-        configMap:
-          name: mysql-config
-
-  # 💾 Each pod gets its own EBS volume
   volumeClaimTemplates:
   - metadata:
       name: mysql-data
     spec:
       accessModes: ["ReadWriteOnce"]
-      storageClassName: gp2
+      storageClassName: gp2   # keep gp2 since your cluster has it
       resources:
         requests:
           storage: 5Gi
