@@ -59,27 +59,6 @@ kubectl apply -f mysql-headless-service.yaml
 
 ---
 
-# ⚙️ 4. ConfigMap (MySQL config)
-
-```yaml
-# mysql-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mysql-config
-data:
-  my.cnf: |
-    [mysqld]
-    log-bin=mysql-bin        # Enable binary logging (required for replication)
-    binlog-format=ROW        # Safer replication format
-```
-
-```bash
-kubectl apply -f mysql-config.yaml
-```
-
----
-
 # 🗄️ 5. StatefulSet (FULL PRODUCTION VERSION)
 
 ```yaml
