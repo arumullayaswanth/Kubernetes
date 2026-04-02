@@ -2,9 +2,7 @@
 ## 🎬 Project Demo
 👉 Click the image below to watch the video on YouTube
 
-<a href="https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk">
-  <img src="https://img.youtube.com/vi/WPojxRV5hWU/maxresdefault.jpg" width="600">
-</a>
+[![Watch the video](https://img.youtube.com/vi/WPojxRV5hWU/0.jpg)](https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk)
 
 ## 🚀 1. Prerequisites
 
