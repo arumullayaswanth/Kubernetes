@@ -19,7 +19,7 @@ kubectl apply -f secret.yaml
 ## STEP 3: Apply Storage
 
 ```bash
-kubectl apply -f storageclass.yaml
+kubectl apply -f pv.yaml
 kubectl apply -f pvc.yaml
 ```
 
