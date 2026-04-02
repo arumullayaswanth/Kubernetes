@@ -25,7 +25,9 @@ This setup supports multiple AI backends:
 
 [![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/maxresdefault.jpg)](https://youtu.be/QgauXUBdxCc)
 
-[![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/maxresdefault.jpg)](https://youtu.be/QgauXUBdxCc)
+
+[![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/0.jpg)](https://youtu.be/QgauXUBdxCc)
+
 # 📌 0. Prerequisites
 
 You need:
