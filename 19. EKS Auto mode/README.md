@@ -1,12 +1,13 @@
-## 🎥 Amazon EKS Auto Mode: Kubernetes Without the Ops Overhead  
-**Why EKS Auto Mode is the Future of Kubernetes Management**
+## ☁️ Amazon EKS Cluster Upgrade (Step-by-Step)
 
-I’ve published a detailed video that explains how **Amazon EKS Auto Mode** simplifies Kubernetes by removing the operational pain of managing nodes, scaling infrastructure, and handling compute provisioning manually.
+📌 In this video, you will learn:
+- How to upgrade an Amazon EKS cluster  
+- Step-by-step implementation  
+- Best practices for zero downtime  
 
-![EKS Auto Mode Diagram](https://github.com/arumullayaswanth/Kubernetes/blob/46e66383474727f7adf6e627c58a6d5f6d467e33/19.%20EKS%20Auto%20mode/youtube%20design.png)
+👉 Click the thumbnail below to watch the full video on YouTube:
 
-🔗 **Watch the Lecture:** https://youtu.be/gDFH9jg4fGA
-
+[![Amazon EKS Cluster Upgrade](https://img.youtube.com/vi/3DCjKZxT1xE/maxresdefault.jpg)](https://youtu.be/3DCjKZxT1xE)
 ---
 
 ### 📘 In This Video, You Will Learn:
