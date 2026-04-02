@@ -6,44 +6,57 @@ spec:
   selector:
     matchLabels:
       app: mysql
+
   strategy:
-    type: Recreate
+    type: Recreate   # Required for DB (no multiple pods)
+
   template:
     metadata:
       labels:
         app: mysql
+
     spec:
       containers:
         - name: mysql
-          image: mysql:9.0
+          image: mysql:8.0   # Correct version
+
+          ports:
+            - containerPort: 3306
+
           env:
+            # Root password from Secret
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-root-password
+
+            # DB name from ConfigMap
             - name: MYSQL_DATABASE
               valueFrom:
                 configMapKeyRef:
                   name: mysql-config
                   key: MYSQL_DATABASE
+
+            # Username from ConfigMap
             - name: MYSQL_USER
               valueFrom:
                 configMapKeyRef:
                   name: mysql-config
                   key: MYSQL_USER
+
+            # User password from Secret
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-user-password
-          ports:
-            - containerPort: 3306
-              name: mysql
+
           volumeMounts:
-            - name: mysql-persistent-storage
-              mountPath: /var/lib/mysql
+            - name: mysql-storage
+              mountPath: /var/lib/mysql   # DB data stored here
+
       volumes:
-        - name: mysql-persistent-storage
+        - name: mysql-storage
           persistentVolumeClaim:
             claimName: mysql-pv-claim
