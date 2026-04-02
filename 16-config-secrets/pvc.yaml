@@ -3,9 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: mysql-pv-claim
 spec:
-  storageClassName: ebs-sc     # Link to EBS StorageClass
+  storageClassName: gp2  
   accessModes:
-    - ReadWriteOnce            # One pod can use it
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi            # Production size (you can increase)
+      storage: 10Gi
