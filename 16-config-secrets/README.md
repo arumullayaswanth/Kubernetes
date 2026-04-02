@@ -1,68 +1,49 @@
 # 🚀 STEP 8: Deploy Everything 
 
-## 1️⃣ ConfigMap
-
+## 1️⃣ storage comes from EBS (Elastic Block Store)
 ```bash
-kubectl apply -f config.yml
+kubectl apply -f storage-class.yaml
 ```
+
 ## 2️⃣ Secret
 
 ```bash
 kubectl apply -f secrets.yml
 ```
-## 3️⃣ Storage
+```bash
+kubectl get secrets
+```
+## 3️⃣ ConfigMap
 
 ```bash
-kubectl apply -f pv.yaml
+kubectl apply -f config.yml
+```
+```bash
+kubectl get configmap
+```
+## 4️⃣ Storage
+
+```bash
 kubectl apply -f pvc.yaml
 ```
-
-## 4️⃣ Deployment (MySQL)
-
-```bash
-kubectl apply -f deploy.yml
-```
-
-## 5️⃣ Service
-
-```bash
-kubectl apply -f mysql-service.yaml
-```
-
-# 🔍 STEP 9: VERIFY EVERYTHING
-
----
-
-## Check Pods
-
-```bash
-kubectl get pods
-```
-
-Wait until:
-
-```
-mysql-xxxx   Running
-```
-
----
-
-## Check PVC
-
 ```bash
 kubectl get pvc
 ```
 
-You should see:
+## 5️⃣ Deployment (MySQL)
 
+```bash
+kubectl apply -f deploy.yml
 ```
-Bound
+```bash
+kubectl get pods
 ```
 
----
+##  Service
 
-## Check Service
-
+```bash
+kubectl apply -f mysql-service.yaml
+```
 ```bash
 kubectl get svc
 ```
@@ -78,8 +59,6 @@ kubectl get svc
 ```bash
 kubectl exec -it <mysql-pod> -- bash
 ```
-
----
 
 ## Login
 
@@ -100,47 +79,14 @@ password
 ```sql
 SHOW DATABASES;
 ```
-
-🎤 Say:
-
-> “Database is created using ConfigMap.”
-
 ---
 
-# 🌍 STEP 11: EXPOSE MYSQL (OPTIONAL)
-
-Update service:
-
-```yaml
-type: LoadBalancer
-```
-
-Apply:
-
-```bash
-kubectl apply -f mysql-service.yaml
-```
-
-Check:
-
-```bash
-kubectl get svc
-```
-
-Wait for:
-
-```
-EXTERNAL-IP
-```
-
----
-
-# 🔥 STEP 12: LIVE CONFIG CHANGE DEMO
+# STEP 12: TEST CONFIG CHANGE 
 
 ```bash
 kubectl edit configmap mysql-config
 ```
-
+Change DB name.
 Restart:
 
 ```bash
@@ -149,10 +95,13 @@ kubectl rollout restart deployment mysql
 
 ---
 
-# 🔐 STEP 13: SECRET CHANGE DEMO
+# 🔐 STEP 13: SECRET CHANGE 
 
 ```bash
 kubectl edit secret mysql-secret
+```
+change password:
+```bash
 kubectl rollout restart deployment mysql
 ```
 
