@@ -1,3 +1,14 @@
+
+## 🎬 Kubernetes DaemonSet Explained
+
+📌 This video covers:
+- What is a DaemonSet  
+- Real-world use cases  
+- Step-by-step explanation  
+
+👉 Click the thumbnail below to watch on YouTube:
+
+[![Watch the video](https://img.youtube.com/vi/QgauXUBdxCc/0.jpg)](https://youtu.be/QgauXUBdxCc?si=PPEOfDjjihL69zs-)
 # 📘 Kubernetes DaemonSet + Prometheus Setup
 
 ---
