@@ -4,6 +4,17 @@
 
 [![Watch the video](https://img.youtube.com/vi/WPojxRV5hWU/0.jpg)](https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk)
 
+## 🎥 Demo & Explanation
+
+📌 In this video, you will learn:
+- Project overview  
+- Step-by-step implementation  
+- Key concepts explained  
+
+👉 Click the image below to watch the video on YouTube:
+
+[![Watch the video](https://img.youtube.com/vi/WPojxRV5hWU/0.jpg)](https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk)
+
 ## 🚀 1. Prerequisites
 
 ```bash
