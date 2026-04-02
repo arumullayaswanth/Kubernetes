@@ -23,7 +23,7 @@ This setup supports multiple AI backends:
 
 👉 Click the thumbnail below to watch the complete step-by-step guide on YouTube:
 
-[![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/maxresdefault.jpg)](https://youtu.be/QgauXUBdxCc)
+[![Kubernetes DaemonSet Explained](https://img.youtube.com/vi/QgauXUBdxCc/maxresdefault.jpg)](https://youtu.be/QgauXUBdxCc)
 ---
 
 # 📌 0. Prerequisites
