@@ -1,14 +1,13 @@
-
 ## ☁️ Amazon EKS Cluster Upgrade (Step-by-Step)
 
 📌 In this video, you will learn:
 - How to upgrade an Amazon EKS cluster  
-- Step-by-step implementation using real commands  
-- Best practices for smooth upgrades  
+- Step-by-step implementation  
+- Best practices for zero downtime  
 
 👉 Click the thumbnail below to watch the full video on YouTube:
 
-[![Amazon EKS Cluster Upgrade](https://img.youtube.com/vi/3DCjKZxT1xE/0.jpg)](https://youtu.be/3DCjKZxT1xE)
+[![Amazon EKS Cluster Upgrade](https://img.youtube.com/vi/3DCjKZxT1xE/maxresdefault.jpg)](https://youtu.be/3DCjKZxT1xE)
 
 
 # **EKS Upgrade Process**
