@@ -1,4 +1,13 @@
+## ☁️ Amazon EKS Auto Mode Explained
 
+📌 In this video, you will learn:
+- What is EKS Auto Mode  
+- How it simplifies Kubernetes operations  
+- Fully automated cluster management  
+
+👉 Click the thumbnail below to watch the full video on YouTube:
+
+[![Amazon EKS Auto Mode Explained](https://img.youtube.com/vi/gDFH9jg4fGA/maxresdefault.jpg)](https://youtu.be/gDFH9jg4fGA)
 # **EKS Upgrade Process**
 1. Upgrading the **EKS Control Plane**
 2. Upgrading **Node Groups / Worker Nodes / Fargate**
