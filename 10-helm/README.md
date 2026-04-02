@@ -1,3 +1,13 @@
+## 🛒 Kubernetes Helm Project (E-Commerce Deployment)
+
+📌 In this video, you will learn:
+- How to use Helm in Kubernetes  
+- Deploy a real-world E-commerce application  
+- Manage applications with Helm charts  
+
+👉 Click the thumbnail below to watch the full video on YouTube:
+
+[![Kubernetes Helm E-Commerce Project](https://img.youtube.com/vi/3bLc4y3AVTY/0.jpg)](https://youtu.be/3bLc4y3AVTY)
 
 # 🌈 END-TO-END HELM PROJECT
 
