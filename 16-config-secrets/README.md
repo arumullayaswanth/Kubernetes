@@ -117,6 +117,10 @@ kubectl edit secret mysql-secret
 ```
 change password:
 ```bash
+kubectl rollout deployment mysql
+```
+
+```bash
 kubectl rollout restart deployment mysql
 ```
 
