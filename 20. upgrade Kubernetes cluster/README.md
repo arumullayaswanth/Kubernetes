@@ -1,13 +1,15 @@
-## ☁️ Amazon EKS Auto Mode Explained
+
+## ☁️ Amazon EKS Cluster Upgrade (Step-by-Step)
 
 📌 In this video, you will learn:
-- What is EKS Auto Mode  
-- How it simplifies Kubernetes operations  
-- Fully automated cluster management  
+- How to upgrade an Amazon EKS cluster  
+- Step-by-step implementation using real commands  
+- Best practices for smooth upgrades  
 
 👉 Click the thumbnail below to watch the full video on YouTube:
 
-[![Amazon EKS Auto Mode Explained](https://img.youtube.com/vi/gDFH9jg4fGA/0.jpg)](https://youtu.be/gDFH9jg4fGA)
+[![Amazon EKS Cluster Upgrade](https://img.youtube.com/vi/3DCjKZxT1xE/0.jpg)](https://youtu.be/3DCjKZxT1xE)
+
 
 # **EKS Upgrade Process**
 1. Upgrading the **EKS Control Plane**
