@@ -1,18 +1,10 @@
 
 ## 🎬 Project Demo
-
-<p align="center">
-  <b>👉 Click below to watch the video on YouTube</b><br><br>
-  <a href="https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk">
-    <img src="https://img.youtube.com/vi/WPojxRV5hWU/maxresdefault.jpg" width="600">
-  </a>
-</p>
-
-## 🎥 Watch the Demo
-
 👉 Click the image below to watch the video on YouTube
 
-[![Watch the video](https://img.youtube.com/vi/WPojxRV5hWU/maxresdefault.jpg)](https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk)
+<a href="https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk">
+  <img src="https://img.youtube.com/vi/WPojxRV5hWU/maxresdefault.jpg" width="600">
+</a>
 
 ## 🚀 1. Prerequisites
 
