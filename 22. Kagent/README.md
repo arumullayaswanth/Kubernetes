@@ -1,32 +1,14 @@
-## 🤖 Kagent Installation on Kubernetes
+## 🤖 Kagent Explained (CNCF AI Agent for Kubernetes)
 
-This guide explains how to install **Kagent** in a Kubernetes cluster step by step.
+📌 In this video, you will learn:
+- What is Kagent (AI-powered DevOps/SRE agent)  
+- How it works inside Kubernetes  
+- Real-world use cases and workflows  
 
-Kagent is an AI-powered SRE / DevOps agent designed to run inside Kubernetes and help with:
-- ⚙️ Operations  
-- 📊 Observability  
-- 🤖 Automation  
+👉 Click the thumbnail below to watch the full video on YouTube:
 
----
+[![Kagent Explained](https://img.youtube.com/vi/hIzCdpntFlw/maxresdefault.jpg)](https://youtu.be/hIzCdpntFlw)
 
-## 🔌 Supported AI Providers
-
-This setup supports multiple AI backends:
-
-- ✅ OpenAI  
-- ✅ Google Gemini  
-- ✅ Local Models (Ollama)  
-
----
-
-## 🎥 Watch the Full Setup Video
-
-👉 Click the thumbnail below to watch the complete step-by-step guide on YouTube:
-
-[![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/maxresdefault.jpg)](https://youtu.be/QgauXUBdxCc)
-
-
-[![Kagent Installation Guide](https://img.youtube.com/vi/QgauXUBdxCc/0.jpg)](https://youtu.be/QgauXUBdxCc)
 
 # 📌 0. Prerequisites
 
