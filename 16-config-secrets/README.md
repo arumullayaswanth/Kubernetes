@@ -79,6 +79,9 @@ password
 ```sql
 SHOW DATABASES;
 ```
+```bash
+mydb
+```
 ---
 
 # STEP 12: TEST CONFIG CHANGE 
@@ -92,7 +95,19 @@ Restart:
 ```bash
 kubectl rollout restart deployment mysql
 ```
-
+#### VERIFY CHANGE
+```bash
+kubectl exec -it <new-pod> -- bash
+```
+```bash
+mysql -u root -p
+```
+```bash
+SHOW DATABASES;
+```
+```bash
+newdb
+```
 ---
 
 # 🔐 STEP 13: SECRET CHANGE 
@@ -137,23 +152,3 @@ kubectl logs <pod>
 
 ---
 
-# 🎯 FINAL LINE (SAY THIS)
-
-> “Now we are not just running Kubernetes…
-> we are running production-grade infrastructure on AWS.”
-
----
-
-# 🚀 NEXT LEVEL (IF YOU WANT)
-
-I can help you with:
-
-* 🔥 RDS instead of MySQL Pod (real production)
-* 🔥 Helm charts
-* 🔥 GitHub Actions CI/CD → auto deploy to EKS
-* 🔥 Secrets Manager integration
-
----
-
-If you want next:
-👉 I’ll convert this into **YouTube Title + Thumbnail + Description (viral)**
