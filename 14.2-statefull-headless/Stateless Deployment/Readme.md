@@ -1,3 +1,14 @@
+## 🎬 Kubernetes DaemonSet Explained
+
+📌 This video covers:
+- What is a DaemonSet  
+- Real-world use cases  
+- Step-by-step explanation  
+
+👉 Click the thumbnail below to watch on YouTube:
+
+[![Watch the video](https://img.youtube.com/vi/QgauXUBdxCc/0.jpg)](https://youtu.be/QgauXUBdxCc?si=PPEOfDjjihL69zs-)
+
 ![Deployment Image](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/0d5649ba5541ee4ee50c26607673254452abca43/14.2-statefull-headless/Stateless%20Deployment/deployment%20images.png)
 
 ### ▶️ Command:
