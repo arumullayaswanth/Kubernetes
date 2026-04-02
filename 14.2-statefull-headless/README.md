@@ -1,4 +1,10 @@
-[![Watch the video](https://img.youtube.com/vi/WPojxRV5hWU/0.jpg)](https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk)
+## 📺 Demo Video
+
+<p align="center">
+  <a href="https://youtu.be/WPojxRV5hWU?si=2f3YZxdNdWtYzyrk">
+    <img src="https://img.shields.io/badge/▶️ Watch%20on%20YouTube-red?style=for-the-badge&logo=youtube">
+  </a>
+</p>
 
 ## 🚀 1. Prerequisites
 
