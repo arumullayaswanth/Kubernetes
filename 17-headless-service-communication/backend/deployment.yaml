@@ -14,6 +14,57 @@ spec:
     spec:
       containers:
       - name: backend
-        image: nginx   # replace with your API later
+        image: python:3.9
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: DB_PORT
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DB_PASSWORD
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            pip install flask mysql-connector-python && \
+            cat <<EOF > app.py
+            from flask import Flask
+            import mysql.connector
+            import os
+            import socket
+
+            app = Flask(__name__)
+
+            @app.route("/")
+            def home():
+                hostname = socket.gethostname()
+                try:
+                    conn = mysql.connector.connect(
+                        host=os.environ.get("DB_HOST"),
+                        user=os.environ.get("DB_USER"),
+                        password=os.environ.get("DB_PASSWORD")
+                    )
+                    return f"Backend Pod: {hostname} connected to DB successfully"
+                except Exception as e:
+                    return f"Backend Pod: {hostname} DB connection failed: {e}"
+
+            app.run(host="0.0.0.0", port=80)
+            EOF
+
+            python app.py
         ports:
         - containerPort: 80
