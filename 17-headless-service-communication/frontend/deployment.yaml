@@ -14,6 +14,14 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: nginx
-        ports:
-        - containerPort: 80
+        image: curlimages/curl
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            while true; do
+              echo "Calling Backend...";
+              curl backend-svc;
+              echo "\n------------------";
+              sleep 5;
+            done
