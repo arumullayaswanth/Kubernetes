@@ -1,3 +1,5 @@
+![Headless Services Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/e4145259854aab8a162364355bfb8fea943033ab/17-headless-service-communication/Headless%20services%20architecture%20diagram.png)
+
 # 🔍 STEP 1 — Check Cluster is Ready
 
 ```bash
