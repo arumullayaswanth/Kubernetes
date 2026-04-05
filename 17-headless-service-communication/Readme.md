@@ -8,7 +8,7 @@ kubectl get nodes
 
 ---
 
-# 💾 STEP 2 — Deploy Storage (EBS)
+### STEP 2 — Deploy Storage (EBS)
 
 ```bash
 kubectl apply -f storage/
@@ -20,7 +20,7 @@ Check:
 kubectl get sc
 ```
 
-✅ You should see:
+ You should see:
 
 ```text
 ebs-sc
@@ -28,7 +28,7 @@ ebs-sc
 
 ---
 
-# 🧠 STEP 3 — Deploy DATABASE (Secrets + Headless + StatefulSet)
+### STEP 3 — Deploy DATABASE (Secrets + Headless + StatefulSet)
 
 ```bash
 kubectl apply -f database/
@@ -36,7 +36,7 @@ kubectl apply -f database/
 
 ---
 
-## 🔍 Verify Database
+####  Verify Database
 
 ```bash
 kubectl get pods
@@ -51,7 +51,7 @@ mysql-1   Running
 
 ---
 
-### 🔥 Check Stateful Identity
+####  Check Stateful Identity
 
 ```bash
 kubectl get pods -o wide
@@ -64,13 +64,13 @@ kubectl get pods -o wide
 
 ---
 
-### 🔥 Check PVC (EBS attached)
+####  Check PVC (EBS attached)
 
 ```bash
 kubectl get pvc
 ```
 
-✅ Output:
+ Output:
 
 ```text
 mysql-data-mysql-0
@@ -79,7 +79,7 @@ mysql-data-mysql-1
 
 ---
 
-# ⚙️ STEP 4 — Deploy BACKEND
+###  STEP 4 — Deploy BACKEND
 
 ```bash
 kubectl apply -f backend/
@@ -87,7 +87,7 @@ kubectl apply -f backend/
 
 ---
 
-## 🔍 Verify Backend
+####  Verify Backend
 
 ```bash
 kubectl get pods
@@ -102,7 +102,7 @@ backend-yyyy   Running
 
 ---
 
-# 🌐 STEP 5 — Deploy FRONTEND
+###  STEP 5 — Deploy FRONTEND
 
 ```bash
 kubectl apply -f frontend/
@@ -110,7 +110,7 @@ kubectl apply -f frontend/
 
 ---
 
-## 🔍 Get External IP
+####  Get External IP
 
 ```bash
 kubectl get svc frontend-svc
@@ -124,7 +124,7 @@ EXTERNAL-IP: <your-ip>
 
 ---
 
-# 🧪 STEP 6 — BASIC TEST (END-TO-END)
+###  STEP 6 — BASIC TEST (END-TO-END)
 
 Open browser:
 
@@ -132,19 +132,19 @@ Open browser:
 http://<EXTERNAL-IP>
 ```
 
-👉 You should see:
+ You should see:
 
 ```text
 Backend Pod: backend-xxx connected to DB successfully
 ```
 
-🔥 This proves:
+ This proves:
 
 * Frontend → Backend → DB working
 
 ---
 
-# 🔥 STEP 7 — WATCH LIVE TRAFFIC (COOL DEMO)
+###  STEP 7 — WATCH LIVE TRAFFIC (COOL DEMO)
 
 ```bash
 kubectl logs -l app=frontend -f
@@ -155,7 +155,7 @@ kubectl logs -l app=backend -f
 
 ---
 
-# 🧠 STEP 8 — TEST HEADLESS SERVICE 
+### STEP 8 — TEST HEADLESS SERVICE 
 
 Enter backend pod:
 
@@ -169,22 +169,22 @@ Now run:
 nslookup mysql-headless
 ```
 
-👉 Output:
+ Output:
 
 ```text
 mysql-0.mysql-headless
 mysql-1.mysql-headless
 ```
 
-🔥 Say in video:
+ Say in video:
 
 > “See — no single IP, direct pod discovery!”
 
 ---
 
-# 💾 STEP 9 — TEST PERSISTENCE (EBS)
+###  STEP 9 — TEST PERSISTENCE (EBS)
 
-### Step 1: Enter MySQL
+##### Step 1: Enter MySQL
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p
@@ -198,7 +198,7 @@ root123
 
 ---
 
-### Step 2: Create Data
+##### Step 2: Create Data
 
 ```sql
 CREATE DATABASE testdb;
@@ -210,7 +210,7 @@ SELECT * FROM demo;
 
 ---
 
-### Step 3: Delete Pod
+##### Step 3: Delete Pod
 
 ```bash
 kubectl delete pod mysql-0
@@ -224,7 +224,7 @@ kubectl get pods
 
 ---
 
-### Step 4: Check Data Again
+##### Step 4: Check Data Again
 
 ```bash
 kubectl exec -it mysql-0 -- mysql -uroot -p
@@ -235,11 +235,11 @@ USE testdb;
 SELECT * FROM demo;
 ```
 
-✅ Data still exists → **EBS working**
+ Data still exists → **EBS working**
 
 ---
 
-# 🔐 STEP 10 — TEST CONFIGMAP
+###  STEP 10 — TEST CONFIGMAP
 
 ```bash
 kubectl describe configmap backend-config
@@ -247,7 +247,7 @@ kubectl describe configmap backend-config
 
 ---
 
-# 🔐 STEP 11 — TEST SECRET
+###  STEP 11 — TEST SECRET
 
 ```bash
 kubectl describe secret backend-secret
@@ -255,13 +255,13 @@ kubectl describe secret backend-secret
 
 ---
 
-### 🔥 Check Inside Pod
+###  Check Inside Pod
 
 ```bash
 kubectl exec -it <backend-pod> -- env | grep DB
 ```
 
-✅ You’ll see:
+ You’ll see:
 
 ```text
 DB_HOST=mysql-headless
@@ -269,48 +269,4 @@ DB_USER=root
 ```
 
 ---
-
-# 💥 STEP 12 — FAILURE TESTING (VERY IMPORTANT FOR VIDEO)
-
-## ❌ Scenario 1: Kill Backend Pod
-
-```bash
-kubectl delete pod <backend-pod>
-```
-
-👉 Still works → Deployment auto-heals
-
----
-
-## ❌ Scenario 2: Kill MySQL Pod
-
-```bash
-kubectl delete pod mysql-0
-```
-
-👉 Backend still connects (via mysql-1 or recreated pod)
-
----
-
-## ❌ Scenario 3: Scale Backend
-
-```bash
-kubectl scale deployment backend --replicas=3
-```
-
-Check:
-
-```bash
-kubectl get pods
-```
-
----
-
-## ❌ Scenario 4: Break Secret
-
-```bash
-kubectl edit secret backend-secret
-```
-
-Change password → save
 
