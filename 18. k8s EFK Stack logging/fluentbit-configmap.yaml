@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: fluent-bit-config
   namespace: kube-logging
+  
   labels:
     k8s-app: fluent-bit
 data:
