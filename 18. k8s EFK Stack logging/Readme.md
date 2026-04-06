@@ -143,7 +143,7 @@ This configuration enables centralized logging by transforming raw Kubernetes co
 
 ---
 
-###  STEP 0 — Connect to your cluster
+###  STEP 0  Connect to your cluster
 
 Make sure Kubernetes is working:
 
@@ -151,21 +151,21 @@ Make sure Kubernetes is working:
 kubectl get nodes
 ```
 
-####  STEP 1 — Create Namespace
+####  STEP 1  Create Namespace
 
 ```bash
 kubectl apply -f namespace.yaml
 ```
 ---
 
-#### STEP 2 — Create StorageClass (AWS EBS)
+#### STEP 2  Create StorageClass (AWS EBS)
 
 ```bash
 kubectl apply -f storageclass.yaml
 ```
 ---
 
-#### STEP 3 — Deploy Elasticsearch
+#### STEP 3  Deploy Elasticsearch
 
 ##### 3.1 Service (Headless)
 
@@ -208,22 +208,20 @@ started
 
 ---
 
-####  STEP 4 — Deploy Kibana
+####  STEP 4  Deploy Kibana
 ##### 4.1 Deployment
 
 ```bash
 kubectl apply -f kibana-deployment.yaml
 ```
 
-## 4.2 Service
+##### 4.2 Service
 
 ```bash
 kubectl apply -f kibana-service.yaml
 ```
 
----
-
-## ⏳ Get External IP
+#####  Get External IP
 
 ```bash
 kubectl get svc -n kube-logging
@@ -235,17 +233,17 @@ Find:
 kibana   LoadBalancer   EXTERNAL-IP
 ```
 
-👉 Open in browser:
+ Open in browser:
 
 ```
 http://<EXTERNAL-IP>
 ```
 
-✅ You should see Kibana UI
+ You should see Kibana UI
 
 ---
 
-####  STEP 5 — Deploy Fluent Bit
+####  STEP 5  Deploy Fluent Bit
 
 ##### 5.1 RBAC
 
