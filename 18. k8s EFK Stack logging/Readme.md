@@ -143,11 +143,138 @@ This configuration enables centralized logging by transforming raw Kubernetes co
 
 ---
 
-## 📊 Use Cases
+###  STEP 0 — Connect to your cluster
 
-* Application log monitoring
-* Debugging Kubernetes workloads
-* Observability with Elasticsearch + Kibana
-* Centralized logging across clusters
+Make sure Kubernetes is working:
+
+```bash
+kubectl get nodes
+```
+
+####  STEP 1 — Create Namespace
+
+```bash
+kubectl apply -f namespace.yaml
+```
+---
+
+#### STEP 2 — Create StorageClass (AWS EBS)
+
+```bash
+kubectl apply -f storageclass.yaml
+```
+---
+
+#### STEP 3 — Deploy Elasticsearch
+
+##### 3.1 Service (Headless)
+
+```bash
+kubectl apply -f elasticsearch-service.yaml
+```
+
+##### 3.2 StatefulSet
+
+```bash
+kubectl apply -f elasticsearch-statefulset.yaml
+```
+
+
+## ⏳ Wait for Elasticsearch pods
+
+```bash
+kubectl get pods -n kube-logging
+```
+
+Wait until you see:
+
+```
+es-cluster-0   Running
+es-cluster-1   Running
+es-cluster-2   Running
+```
+
+####  Check logs (important)
+
+```bash
+kubectl logs es-cluster-0 -n kube-logging
+```
+
+Look for:
+
+```
+started
+```
+
+---
+
+####  STEP 4 — Deploy Kibana
+##### 4.1 Deployment
+
+```bash
+kubectl apply -f kibana-deployment.yaml
+```
+
+## 4.2 Service
+
+```bash
+kubectl apply -f kibana-service.yaml
+```
+
+---
+
+## ⏳ Get External IP
+
+```bash
+kubectl get svc -n kube-logging
+```
+
+Find:
+
+```
+kibana   LoadBalancer   EXTERNAL-IP
+```
+
+👉 Open in browser:
+
+```
+http://<EXTERNAL-IP>
+```
+
+✅ You should see Kibana UI
+
+---
+
+####  STEP 5 — Deploy Fluent Bit
+
+##### 5.1 RBAC
+
+```bash
+kubectl apply -f fluentbit-serviceaccount.yaml
+kubectl apply -f fluentbit-clusterrole.yaml
+kubectl apply -f fluentbit-clusterrolebinding.yaml
+```
+
+##### 5.2 Config
+
+```bash
+kubectl apply -f fluentbit-configmap.yaml
+```
+
+##### 5.3 DaemonSet
+
+```bash
+kubectl apply -f fluentbit-daemonset.yaml
+```
+
+```bash
+kubectl get pods -n kube-logging
+```
+
+You should see:
+
+```
+fluent-bit-xxxxx   Running (on every node)
+```
 
 ---
