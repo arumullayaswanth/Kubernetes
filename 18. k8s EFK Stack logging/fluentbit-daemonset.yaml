@@ -3,22 +3,28 @@ kind: DaemonSet
 metadata:
   name: fluent-bit
   namespace: kube-logging
+  
   labels:
     k8s-app: fluent-bit-logging
+    
 spec:
   selector:
     matchLabels:
       k8s-app: fluent-bit-logging
+      
   template:
     metadata:
       labels:
         k8s-app: fluent-bit-logging
+        
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "2020"
         prometheus.io/path: /api/v1/metrics/prometheus
+        
     spec:
-      serviceAccountName: fluent-bit
+      serviceAccountName: fluent-bit  # Uses RBAC
+      
       terminationGracePeriodSeconds: 10
 
       containers:
@@ -40,16 +46,16 @@ spec:
         - name: fluent-bit-config
           mountPath: /fluent-bit/etc/
 
-      volumes:
+      volumes:         
       - name: varlog
         hostPath:
-          path: /var/log
+          path: /var/log  # Access node logs
 
       - name: varlibdockercontainers
         hostPath:
           path: /var/lib/docker/containers
 
-      - name: fluent-bit-config
+      - name: fluent-bit-config  # Loads config
         configMap:
           name: fluent-bit-config
 
