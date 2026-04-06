@@ -23,7 +23,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: website
-        image: yaswanth111/appointy-frontend:latest
+        image: yaswanth111/paytam:latest
         ports:
         - containerPort: 80
 
