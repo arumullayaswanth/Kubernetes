@@ -21,6 +21,7 @@ data:
     @INCLUDE filter-kubernetes.conf
     @INCLUDE output-elasticsearch.conf
 
+# Reads logs from node
   input-kubernetes.conf: |
     [INPUT]
         Name              tail
@@ -32,6 +33,7 @@ data:
         Skip_Long_Lines   On
         Refresh_Interval  10
 
+# Adds Kubernetes metadata
   filter-kubernetes.conf: |
     [FILTER]
         Name                kubernetes
@@ -45,6 +47,7 @@ data:
         K8S-Logging.Parser  On
         K8S-Logging.Exclude Off
 
+ # Sends logs to Elasticsearch
   output-elasticsearch.conf: |
     [OUTPUT]
         Name            es
