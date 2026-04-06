@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: kube-logging
+  labels:
+    app: elasticsearch
+
+spec:
+  clusterIP: None  
+  selector:
+    app: elasticsearch  # Matches pods
+
+  ports:
+    - port: 9200
+      name: rest  # Used by Kibana & Fluent Bit
+
+    - port: 9300
+      name: inter-node  # Internal ES cluster communication
