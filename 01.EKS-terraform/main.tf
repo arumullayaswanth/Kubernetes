@@ -81,8 +81,8 @@ resource "aws_subnet" "public1" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                            = "eks-public-subnet-1"
-    "kubernetes.io/role/elb"        = "1"
+    Name                                          = "eks-public-subnet-1"
+    "kubernetes.io/role/elb"                      = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
 }
@@ -95,8 +95,8 @@ resource "aws_subnet" "public2" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                            = "eks-public-subnet-2"
-    "kubernetes.io/role/elb"        = "1"
+    Name                                          = "eks-public-subnet-2"
+    "kubernetes.io/role/elb"                      = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
 }
@@ -108,8 +108,8 @@ resource "aws_subnet" "private1" {
   availability_zone = "us-east-1a"
 
   tags = {
-    Name                              = "eks-private-subnet-1"
-    "kubernetes.io/role/internal-elb" = "1"
+    Name                                          = "eks-private-subnet-1"
+    "kubernetes.io/role/internal-elb"             = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
 }
@@ -121,8 +121,8 @@ resource "aws_subnet" "private2" {
   availability_zone = "us-east-1b"
 
   tags = {
-    Name                              = "eks-private-subnet-2"
-    "kubernetes.io/role/internal-elb" = "1"
+    Name                                          = "eks-private-subnet-2"
+    "kubernetes.io/role/internal-elb"             = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
 }
