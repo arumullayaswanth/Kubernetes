@@ -6,6 +6,18 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -18,6 +30,7 @@ provider "aws" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 locals {
   cluster_name        = "eksprod"
@@ -370,6 +383,125 @@ data "aws_eks_cluster_auth" "eks" {
   depends_on = [
     aws_eks_cluster.eks
   ]
+}
+
+data "tls_certificate" "eks" {
+  url = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+}
+
+data "aws_iam_policy_document" "aws_lbc_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "aws_lbc" {
+  name   = "AWSLoadBalancerControllerIAMPolicy"
+  policy = file("${path.module}/iam_policy.json")
+}
+
+resource "aws_iam_role" "aws_lbc" {
+  name               = "AmazonEKSLoadBalancerControllerRole"
+  assume_role_policy = data.aws_iam_policy_document.aws_lbc_assume_role.json
+
+  tags = {
+    Name = "eks-aws-load-balancer-controller-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "aws_lbc" {
+  role       = aws_iam_role.aws_lbc.name
+  policy_arn = aws_iam_policy.aws_lbc.arn
+}
+
+resource "kubernetes_service_account" "aws_lbc" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.aws_lbc.arn
+    }
+  }
+
+  depends_on = [
+    aws_eks_cluster.eks
+  ]
+}
+
+resource "helm_release" "aws_lbc" {
+  name       = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+
+  set {
+    name  = "clusterName"
+    value = local.cluster_name
+  }
+
+  set {
+    name  = "region"
+    value = data.aws_region.current.name
+  }
+
+  set {
+    name  = "vpcId"
+    value = aws_vpc.eks_vpc.id
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = kubernetes_service_account.aws_lbc.metadata[0].name
+  }
+
+  depends_on = [
+    aws_eks_node_group.node_group,
+    aws_iam_role_policy_attachment.aws_lbc,
+    kubernetes_service_account.aws_lbc
+  ]
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.eks.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.eks.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.eks.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.eks.token
+  }
 }
 
 ############################
