@@ -352,6 +352,38 @@ jobs:
             echo "- Deleted any remaining ELB/ALB/NLB in VPC ${VPC_ID}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Try to delete non-default security groups in the VPC (may be blocked if still in use).
+      - name: Pre-Destroy Security Group Cleanup
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
+          if [ -z "${VPC_ID}" ]; then
+            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
+          fi
+
+          if [ -z "${VPC_ID}" ]; then
+            echo "VPC ID not found. Skipping security group cleanup."
+            exit 0
+          fi
+
+          aws ec2 describe-security-groups \
+            --filters "Name=vpc-id,Values=${VPC_ID}" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query "SecurityGroups[?GroupName!='default'].GroupId" \
+            --output text > sg-ids.txt || true
+
+          while read -r SG_ID; do
+            [ -z "${SG_ID}" ] && continue
+            echo "Deleting security group: ${SG_ID}"
+            aws ec2 delete-security-group --group-id "${SG_ID}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done < sg-ids.txt
+
+          {
+            echo "## Security Group Cleanup"
+            echo ""
+            echo "- Attempted deletion of all non-default security groups in VPC ${VPC_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # NAT gateways create ENIs that can block VPC deletion if they linger.
       - name: Pre-Destroy NAT Gateway Cleanup
         if: github.event.inputs.action == 'destroy'
@@ -460,6 +492,32 @@ jobs:
             echo ""
             echo "\`\`\`text"
             cat inuse-enis.txt || true
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report Security Groups In Use
+        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
+        run: |
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
+          if [ -z "${VPC_ID}" ]; then
+            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
+          fi
+
+          if [ -z "${VPC_ID}" ]; then
+            exit 0
+          fi
+
+          aws ec2 describe-security-groups \
+            --filters "Name=vpc-id,Values=${VPC_ID}" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query "SecurityGroups[?GroupName!='default'].{Id:GroupId,Name:GroupName,Description:Description}" \
+            --output table > vpc-sg-details.txt || true
+
+          {
+            echo "## Security Groups In Use"
+            echo ""
+            echo "\`\`\`text"
+            cat vpc-sg-details.txt || true
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 

@@ -11,7 +11,7 @@ The GitHub Actions workflow file is:
 This workflow works exactly like this:
 
 1. Pull request trigger
-   If you create or update a pull request with changes inside `1.EKS-terraform`, the pipeline runs automatically.
+   If you create or update a pull request with changes inside `01.EKS-terraform`, the pipeline runs automatically.
 
 2. Manual trigger
    You can go to GitHub Actions and manually run the workflow whenever you want.
@@ -128,6 +128,18 @@ If you choose `destroy`, set:
 
 `confirm_destroy = yes`
 
+## One-Click Apply / Destroy (GitHub Actions)
+
+Use these exact inputs in the **Run workflow** dialog:
+
+Apply (create everything):
+- `action`: `apply`
+- `confirm_destroy`: leave as `no`
+
+Destroy (delete everything):
+- `action`: `destroy`
+- `confirm_destroy`: `yes`
+
 ## How To Deploy The Cluster Through GitHub Actions
 
 1. Push your code to GitHub
@@ -159,7 +171,7 @@ Terraform will destroy all resources managed by this folder.
 
 Open terminal inside:
 
-`1.EKS-terraform`
+`01.EKS-terraform`
 
 Run init:
 
@@ -274,4 +286,3 @@ kubectl cluster-info
 - Manual workflow run is required for actual deployment or deletion
 - The S3 bucket must exist before running the workflow
 - Your AWS credentials must have permissions for EKS, EC2, VPC, IAM, Auto Scaling, and S3
-
