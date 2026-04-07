@@ -312,6 +312,46 @@ jobs:
             echo "- Deleted load balancers and target groups tagged with elbv2.k8s.aws/cluster=${CLUSTER_NAME}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Fallback: delete any remaining load balancers in the VPC (in case tags are missing).
+      - name: Pre-Destroy VPC Load Balancer Cleanup
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
+          if [ -z "${VPC_ID}" ]; then
+            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
+          fi
+
+          if [ -z "${VPC_ID}" ]; then
+            echo "VPC ID not found. Skipping VPC load balancer cleanup."
+            exit 0
+          fi
+
+          aws elbv2 describe-load-balancers \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query "LoadBalancers[?VpcId=='${VPC_ID}'].LoadBalancerArn" \
+            --output text > vpc-elbv2-arns.txt || true
+
+          for ARN in $(cat vpc-elbv2-arns.txt); do
+            echo "Deleting ELBv2: ${ARN}"
+            aws elbv2 delete-load-balancer --load-balancer-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done
+
+          aws elb describe-load-balancers \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query "LoadBalancerDescriptions[?VPCId=='${VPC_ID}'].LoadBalancerName" \
+            --output text > vpc-elb-names.txt || true
+
+          for NAME in $(cat vpc-elb-names.txt); do
+            echo "Deleting classic ELB: ${NAME}"
+            aws elb delete-load-balancer --load-balancer-name "${NAME}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done
+
+          {
+            echo "## VPC Load Balancer Cleanup"
+            echo ""
+            echo "- Deleted any remaining ELB/ALB/NLB in VPC ${VPC_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # NAT gateways create ENIs that can block VPC deletion if they linger.
       - name: Pre-Destroy NAT Gateway Cleanup
         if: github.event.inputs.action == 'destroy'
