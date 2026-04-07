@@ -316,8 +316,11 @@ jobs:
       - name: Pre-Destroy NAT Gateway Cleanup
         if: github.event.inputs.action == 'destroy'
         run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null || true)"
-          VPC_ID="$(printf '%s' "${VPC_ID}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
+
+          if [ -z "${VPC_ID}" ]; then
+            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
+          fi
 
           if [ -z "${VPC_ID}" ]; then
             echo "VPC ID not found. Skipping NAT cleanup."
