@@ -210,7 +210,11 @@ jobs:
       - name: Pre-Destroy Kubernetes Cleanup
         if: github.event.inputs.action == 'destroy'
         run: |
-          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
+          CLUSTER_NAME="$(terraform output -raw -no-color cluster_name 2>/dev/null || true)"
+          CLUSTER_NAME="$(printf '%s' "${CLUSTER_NAME}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
+          if [ -z "${CLUSTER_NAME}" ]; then
+            CLUSTER_NAME="eksprod"
+          fi
 
           if ! aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" >/dev/null 2>&1; then
             echo "Cluster ${CLUSTER_NAME} not found. Skipping Kubernetes cleanup."
@@ -266,7 +270,11 @@ jobs:
       - name: Pre-Destroy ALB Cleanup
         if: github.event.inputs.action == 'destroy'
         run: |
-          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
+          CLUSTER_NAME="$(terraform output -raw -no-color cluster_name 2>/dev/null || true)"
+          CLUSTER_NAME="$(printf '%s' "${CLUSTER_NAME}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
+          if [ -z "${CLUSTER_NAME}" ]; then
+            CLUSTER_NAME="eksprod"
+          fi
 
           aws resourcegroupstaggingapi get-resources \
             --resource-type-filters "elasticloadbalancing:loadbalancer" \
@@ -301,11 +309,11 @@ jobs:
       - name: Capture Destroy Subnet IDs
         if: github.event.inputs.action == 'destroy'
         run: |
-          terraform output -json private_subnet_ids > private-subnet-ids.json
-          terraform output -json public_subnet_ids > public-subnet-ids.json
+          terraform output -json private_subnet_ids 2>/dev/null > private-subnet-ids.json || echo '[]' > private-subnet-ids.json
+          terraform output -json public_subnet_ids 2>/dev/null > public-subnet-ids.json || echo '[]' > public-subnet-ids.json
 
-          jq -r '.[]' private-subnet-ids.json > subnet-ids.txt
-          jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt
+          jq -r '.[]' private-subnet-ids.json > subnet-ids.txt || true
+          jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt || true
 
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
