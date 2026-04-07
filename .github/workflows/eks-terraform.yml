@@ -216,8 +216,14 @@ jobs:
             CLUSTER_NAME="eksprod"
           fi
 
-          if ! aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" >/dev/null 2>&1; then
+          CLUSTER_STATUS="$(aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" --query 'cluster.status' --output text 2>/dev/null || true)"
+          if [ -z "${CLUSTER_STATUS}" ]; then
             echo "Cluster ${CLUSTER_NAME} not found. Skipping Kubernetes cleanup."
+            exit 0
+          fi
+
+          if [ "${CLUSTER_STATUS}" != "ACTIVE" ]; then
+            echo "Cluster ${CLUSTER_NAME} status is ${CLUSTER_STATUS}. Skipping Kubernetes cleanup."
             exit 0
           fi
 
