@@ -357,3 +357,22 @@ jobs:
       - name: Terraform Destroy Retry
         if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
         run: terraform destroy -auto-approve -no-color
+
+      - name: Destroy Summary
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          {
+            echo "## Destroy Summary"
+            echo ""
+            if [ "${{ steps.terraform_destroy.outcome }}" = "success" ]; then
+              echo "- Status: Successfully destroyed all Terraform-managed resources."
+              echo "- Note: If any AWS resources were created outside Terraform, they may still exist."
+            else
+              echo "- Status: Destroy failed."
+              echo "- Next step: Share the error output from the failed step so we can fix it."
+              echo "- Common blockers:"
+              echo "  - Load balancers or ENIs still attached to the VPC"
+              echo "  - Security groups still in use"
+              echo "  - Kubernetes finalizers on Ingress or Service objects"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
