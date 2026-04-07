@@ -1,17 +1,10 @@
+# 📦 Kubernetes EFK Stack Logging Architecture
 ## 🏗️ Project Architecture
 ![EFK Architecture](architecture.gif)
 
 ![Project Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/37f421dcf2869570f2d06d3036d07f6340c4c8a9/18.%20k8s%20EFK%20Stack%20logging/images/project%20architecture.png)
 
-Here’s a clean **README.md** for your Kubernetes EFK architecture GIF, with the image properly embedded and explained 👇
 
----
-
-# 📦 Kubernetes EFK Stack Logging Architecture
-
-![EFK Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/53e15c3d0bce3035d00b7fe79829b544854a2626/18.%20k8s%20EFK%20Stack%20logging/images/architecture.gif)
-
----
 
 ## 📖 Overview
 
