@@ -52,3 +52,7 @@ sudo yum install -y docker
 sudo systemctl enable docker
 sudo systemctl start docker
 docker --version || true
+
+# Install Git
+sudo yum install -y git
+git --version || true

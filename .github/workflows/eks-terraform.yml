@@ -18,7 +18,7 @@ run-name: >-
 on:
   pull_request:
     paths:
-      - "1.EKS-terraform/**"
+      - "01.EKS-terraform/**"
       - ".github/workflows/eks-terraform.yml"
   workflow_dispatch:
     inputs:
@@ -49,7 +49,7 @@ concurrency:
 env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
-  TF_WORKING_DIR: "1.EKS-terraform"
+  TF_WORKING_DIR: "01.EKS-terraform"
   TF_STATE_KEY: "eks/terraform.tfstate"
   AWS_REGION_VALUE: "us-east-1"
 
