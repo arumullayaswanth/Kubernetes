@@ -312,6 +312,40 @@ jobs:
             echo "- Deleted load balancers and target groups tagged with elbv2.k8s.aws/cluster=${CLUSTER_NAME}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # NAT gateways create ENIs that can block VPC deletion if they linger.
+      - name: Pre-Destroy NAT Gateway Cleanup
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null || true)"
+          VPC_ID="$(printf '%s' "${VPC_ID}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
+
+          if [ -z "${VPC_ID}" ]; then
+            echo "VPC ID not found. Skipping NAT cleanup."
+            exit 0
+          fi
+
+          aws ec2 describe-nat-gateways \
+            --filter "Name=vpc-id,Values=${VPC_ID}" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'NatGateways[?State!=`deleted`].NatGatewayId' \
+            --output text > nat-ids.txt || true
+
+          for NAT_ID in $(cat nat-ids.txt); do
+            echo "Deleting NAT gateway: ${NAT_ID}"
+            aws ec2 delete-nat-gateway --nat-gateway-id "${NAT_ID}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done
+
+          if [ -s nat-ids.txt ]; then
+            echo "Waiting for NAT gateways to delete..."
+            aws ec2 wait nat-gateway-deleted --nat-gateway-ids $(cat nat-ids.txt) --region "${{ env.AWS_REGION_VALUE }}" || true
+          fi
+
+          {
+            echo "## NAT Cleanup"
+            echo ""
+            echo "- NAT gateways deleted for VPC ${VPC_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Capture Destroy Subnet IDs
         if: github.event.inputs.action == 'destroy'
         run: |
@@ -358,6 +392,32 @@ jobs:
             echo "## Network Interface Cleanup"
             echo ""
             echo "- Available ENIs deleted before destroy retry: ${ENI_COUNT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report In-Use ENIs
+        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
+        run: |
+          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null || true)"
+          VPC_ID="$(printf '%s' "${VPC_ID}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
+
+          if [ -z "${VPC_ID}" ]; then
+            exit 0
+          fi
+
+          aws ec2 describe-network-interfaces \
+            --filters "Name=vpc-id,Values=${VPC_ID}" "Name=status,Values=in-use" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'NetworkInterfaces[].{Id:NetworkInterfaceId,Type:InterfaceType,Attachment:Attachment.InstanceId,Description:Description}' \
+            --output table > inuse-enis.txt || true
+
+          {
+            echo "## In-Use ENIs"
+            echo ""
+            echo "These ENIs are still attached and will block VPC deletion:"
+            echo ""
+            echo "\`\`\`text"
+            cat inuse-enis.txt || true
+            echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Terraform Destroy Retry
