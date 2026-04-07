@@ -1,3 +1,7 @@
+## EFK Stack Architecture
+
+![EFK Stack](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/cc5499e40e9eb064675dc560b76fe6f5df02be4f/18.%20k8s%20EFK%20Stack%20logging/images/efk.png)
+
 # Fluent Bit Kubernetes Logging Configuration
 
 
