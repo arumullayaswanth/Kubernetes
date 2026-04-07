@@ -24,6 +24,8 @@ metadata:
   name: my-app-lb
   labels:
     app: my-app-lb
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
 spec:
   type: LoadBalancer
   ports:
