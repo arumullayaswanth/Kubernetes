@@ -262,6 +262,42 @@ jobs:
             echo "- LoadBalancer services, ingresses, default workloads, and non-system namespaces were deleted first"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Delete leftover AWS load balancers created by the controller before Terraform destroy.
+      - name: Pre-Destroy ALB Cleanup
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
+
+          aws resourcegroupstaggingapi get-resources \
+            --resource-type-filters "elasticloadbalancing:loadbalancer" \
+            --tag-filters "Key=elbv2.k8s.aws/cluster,Values=${CLUSTER_NAME}" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'ResourceTagMappingList[].ResourceARN' \
+            --output text > lb-arns.txt || true
+
+          for ARN in $(cat lb-arns.txt); do
+            echo "Deleting load balancer: ${ARN}"
+            aws elbv2 delete-load-balancer --load-balancer-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done
+
+          aws resourcegroupstaggingapi get-resources \
+            --resource-type-filters "elasticloadbalancing:targetgroup" \
+            --tag-filters "Key=elbv2.k8s.aws/cluster,Values=${CLUSTER_NAME}" \
+            --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'ResourceTagMappingList[].ResourceARN' \
+            --output text > tg-arns.txt || true
+
+          for ARN in $(cat tg-arns.txt); do
+            echo "Deleting target group: ${ARN}"
+            aws elbv2 delete-target-group --target-group-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
+          done
+
+          {
+            echo "## ALB Cleanup"
+            echo ""
+            echo "- Deleted load balancers and target groups tagged with elbv2.k8s.aws/cluster=${CLUSTER_NAME}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Capture Destroy Subnet IDs
         if: github.event.inputs.action == 'destroy'
         run: |
