@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluent-bit
+  
+rules: # Defines allowed actions.
+  - apiGroups: [""]
+    resources: # Fluent Bit needs:
+      - pods # Pod metadata
+      - namespaces # Namespace metadata
+      
+    verbs: [ "get", "list", "watch" ] # Read-only access, No create, delete, or modify.

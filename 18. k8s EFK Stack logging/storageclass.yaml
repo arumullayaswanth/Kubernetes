@@ -1,9 +1,0 @@
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: ebs-storage    # Name used by PVCs
-provisioner: ebs.csi.aws.com    # AWS EBS CSI driver
-volumeBindingMode: WaitForFirstConsumer
-reclaimPolicy: Retain
-parameters:
-  type: gp2  # AWS General Purpose SSD
