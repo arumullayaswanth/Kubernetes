@@ -1,4 +1,25 @@
+# 📘 AWS Load Balancer Controller (EKS)
 
+## 🚨 Why AWS Load Balancer Controller is Required
+
+The AWS Load Balancer Controller is responsible for provisioning and managing AWS Application Load Balancers (ALB) for your Kubernetes Ingress resources.
+
+Without it:
+
+- Your Ingress object will still be created in Kubernetes  
+- ❌ But no ALB will be created in AWS  
+- ❌ Your application will not be accessible externally  
+
+
+## 🔄 How It Works
+
+- Kubernetes Ingress YAML  
+  ↓  
+- AWS Load Balancer Controller  
+  ↓  
+- AWS ALB is created automatically  
+  ↓  
+- Traffic routed to Kubernetes services/pods  
 ## Step 0: Check AWS Load Balancer Controller
 
 This project uses Kubernetes Ingress with AWS ALB.
