@@ -6,6 +6,7 @@
 
 
 
+
 ## 📖 Overview
 
 The **EFK Stack** (Elasticsearch, Fluentd, Kibana) is a popular solution for centralized logging in Kubernetes environments.
