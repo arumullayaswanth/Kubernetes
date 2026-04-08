@@ -10,3 +10,4 @@ rules: # Defines allowed actions.
       - namespaces # Namespace metadata
       
     verbs: [ "get", "list", "watch" ] # Read-only access, No create, delete, or modify.
+
