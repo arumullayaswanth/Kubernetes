@@ -92,3 +92,4 @@ spec:
       resources:
         requests:
           storage: 10Gi   # Each pod gets 10GB volume
+          
