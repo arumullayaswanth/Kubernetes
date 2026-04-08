@@ -26,6 +26,7 @@ Container Logs → INPUT → FILTER → OUTPUT → Elasticsearch
 
 ---
 
+
 ## ⚙️ Components
 
 ### 1. SERVICE
