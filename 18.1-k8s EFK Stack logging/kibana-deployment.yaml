@@ -35,5 +35,6 @@ spec:
             - name: ELASTICSEARCH_URL
               value: http://elasticsearch:9200
               
+              
           ports:
             - containerPort: 5601
