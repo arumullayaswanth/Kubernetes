@@ -12,3 +12,4 @@ subjects:
   - kind: ServiceAccount
     name: fluent-bit
     namespace: kube-logging
+
