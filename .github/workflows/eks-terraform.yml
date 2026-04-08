@@ -210,20 +210,10 @@ jobs:
       - name: Pre-Destroy Kubernetes Cleanup
         if: github.event.inputs.action == 'destroy'
         run: |
-          CLUSTER_NAME="$(terraform output -raw -no-color cluster_name 2>/dev/null || true)"
-          CLUSTER_NAME="$(printf '%s' "${CLUSTER_NAME}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
-          if [ -z "${CLUSTER_NAME}" ]; then
-            CLUSTER_NAME="eksprod"
-          fi
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
 
-          CLUSTER_STATUS="$(aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" --query 'cluster.status' --output text 2>/dev/null || true)"
-          if [ -z "${CLUSTER_STATUS}" ]; then
+          if ! aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" >/dev/null 2>&1; then
             echo "Cluster ${CLUSTER_NAME} not found. Skipping Kubernetes cleanup."
-            exit 0
-          fi
-
-          if [ "${CLUSTER_STATUS}" != "ACTIVE" ]; then
-            echo "Cluster ${CLUSTER_NAME} status is ${CLUSTER_STATUS}. Skipping Kubernetes cleanup."
             exit 0
           fi
 
@@ -265,144 +255,21 @@ jobs:
           echo "Waiting for Kubernetes resources, load balancers, and ENIs to start deleting..."
           sleep 180
 
-
-      # Delete leftover AWS load balancers created by the controller before Terraform destroy.
-      - name: Pre-Destroy ALB Cleanup
-        if: github.event.inputs.action == 'destroy'
-        run: |
-          CLUSTER_NAME="$(terraform output -raw -no-color cluster_name 2>/dev/null || true)"
-          CLUSTER_NAME="$(printf '%s' "${CLUSTER_NAME}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
-          if [ -z "${CLUSTER_NAME}" ]; then
-            CLUSTER_NAME="eksprod"
-          fi
-
-          aws resourcegroupstaggingapi get-resources \
-            --resource-type-filters "elasticloadbalancing:loadbalancer" \
-            --tag-filters "Key=elbv2.k8s.aws/cluster,Values=${CLUSTER_NAME}" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query 'ResourceTagMappingList[].ResourceARN' \
-            --output text > lb-arns.txt || true
-
-          for ARN in $(cat lb-arns.txt); do
-            echo "Deleting load balancer: ${ARN}"
-            aws elbv2 delete-load-balancer --load-balancer-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-          aws resourcegroupstaggingapi get-resources \
-            --resource-type-filters "elasticloadbalancing:targetgroup" \
-            --tag-filters "Key=elbv2.k8s.aws/cluster,Values=${CLUSTER_NAME}" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query 'ResourceTagMappingList[].ResourceARN' \
-            --output text > tg-arns.txt || true
-
-          for ARN in $(cat tg-arns.txt); do
-            echo "Deleting target group: ${ARN}"
-            aws elbv2 delete-target-group --target-group-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-
-      # Fallback: delete any remaining load balancers in the VPC (in case tags are missing).
-      - name: Pre-Destroy VPC Load Balancer Cleanup
-        if: github.event.inputs.action == 'destroy'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
-          if [ -z "${VPC_ID}" ]; then
-            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
-          fi
-
-          if [ -z "${VPC_ID}" ]; then
-            echo "VPC ID not found. Skipping VPC load balancer cleanup."
-            exit 0
-          fi
-
-          aws elbv2 describe-load-balancers \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query "LoadBalancers[?VpcId=='${VPC_ID}'].LoadBalancerArn" \
-            --output text > vpc-elbv2-arns.txt || true
-
-          for ARN in $(cat vpc-elbv2-arns.txt); do
-            echo "Deleting ELBv2: ${ARN}"
-            aws elbv2 delete-load-balancer --load-balancer-arn "${ARN}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-          aws elb describe-load-balancers \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query "LoadBalancerDescriptions[?VPCId=='${VPC_ID}'].LoadBalancerName" \
-            --output text > vpc-elb-names.txt || true
-
-          for NAME in $(cat vpc-elb-names.txt); do
-            echo "Deleting classic ELB: ${NAME}"
-            aws elb delete-load-balancer --load-balancer-name "${NAME}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-
-      # Try to delete non-default security groups in the VPC (may be blocked if still in use).
-      - name: Pre-Destroy Security Group Cleanup
-        if: github.event.inputs.action == 'destroy'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
-          if [ -z "${VPC_ID}" ]; then
-            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
-          fi
-
-          if [ -z "${VPC_ID}" ]; then
-            echo "VPC ID not found. Skipping security group cleanup."
-            exit 0
-          fi
-
-          aws ec2 describe-security-groups \
-            --filters "Name=vpc-id,Values=${VPC_ID}" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query "SecurityGroups[?GroupName!='default'].GroupId" \
-            --output text > sg-ids.txt || true
-
-          tr '\t' '\n' < sg-ids.txt | while read -r SG_ID; do
-            [ -z "${SG_ID}" ] && continue
-            echo "Deleting security group: ${SG_ID}"
-            aws ec2 delete-security-group --group-id "${SG_ID}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-
-      # NAT gateways create ENIs that can block VPC deletion if they linger.
-      - name: Pre-Destroy NAT Gateway Cleanup
-        if: github.event.inputs.action == 'destroy'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
-
-          if [ -z "${VPC_ID}" ]; then
-            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
-          fi
-
-          if [ -z "${VPC_ID}" ]; then
-            echo "VPC ID not found. Skipping NAT cleanup."
-            exit 0
-          fi
-
-          aws ec2 describe-nat-gateways \
-            --filter "Name=vpc-id,Values=${VPC_ID}" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query 'NatGateways[?State!=`deleted`].NatGatewayId' \
-            --output text > nat-ids.txt || true
-
-          for NAT_ID in $(cat nat-ids.txt); do
-            echo "Deleting NAT gateway: ${NAT_ID}"
-            aws ec2 delete-nat-gateway --nat-gateway-id "${NAT_ID}" --region "${{ env.AWS_REGION_VALUE }}" || true
-          done
-
-          if [ -s nat-ids.txt ]; then
-            echo "Waiting for NAT gateways to delete..."
-            aws ec2 wait nat-gateway-deleted --nat-gateway-ids $(cat nat-ids.txt) --region "${{ env.AWS_REGION_VALUE }}" || true
-          fi
-
+          {
+            echo "## Pre-Destroy Cleanup"
+            echo ""
+            echo "- Cluster cleaned before Terraform destroy: ${CLUSTER_NAME}"
+            echo "- LoadBalancer services, ingresses, default workloads, and non-system namespaces were deleted first"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Capture Destroy Subnet IDs
         if: github.event.inputs.action == 'destroy'
         run: |
-          terraform output -json private_subnet_ids 2>/dev/null > private-subnet-ids.json || echo '[]' > private-subnet-ids.json
-          terraform output -json public_subnet_ids 2>/dev/null > public-subnet-ids.json || echo '[]' > public-subnet-ids.json
+          terraform output -json private_subnet_ids > private-subnet-ids.json
+          terraform output -json public_subnet_ids > public-subnet-ids.json
 
-          jq -r '.[]' private-subnet-ids.json > subnet-ids.txt || true
-          jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt || true
+          jq -r '.[]' private-subnet-ids.json > subnet-ids.txt
+          jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt
 
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
@@ -437,146 +304,12 @@ jobs:
 
           ENI_COUNT=$(grep -cve '^\s*$' eni-cleanup.txt || true)
 
-
-      - name: Report In-Use ENIs
-        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null || true)"
-          VPC_ID="$(printf '%s' "${VPC_ID}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
-
-          if [ -z "${VPC_ID}" ]; then
-            exit 0
-          fi
-
-          aws ec2 describe-network-interfaces \
-            --filters "Name=vpc-id,Values=${VPC_ID}" "Name=status,Values=in-use" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query 'NetworkInterfaces[].{Id:NetworkInterfaceId,Type:InterfaceType,Attachment:Attachment.InstanceId,Description:Description}' \
-            --output table > inuse-enis.txt || true
-
-
-      - name: Report Security Groups In Use
-        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null | grep -Eo '^vpc-[0-9a-f]+' | head -n1 || true)"
-          if [ -z "${VPC_ID}" ]; then
-            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1 || true)"
-          fi
-
-          if [ -z "${VPC_ID}" ]; then
-            exit 0
-          fi
-
-          aws ec2 describe-security-groups \
-            --filters "Name=vpc-id,Values=${VPC_ID}" \
-            --region "${{ env.AWS_REGION_VALUE }}" \
-            --query "SecurityGroups[?GroupName!='default'].{Id:GroupId,Name:GroupName,Description:Description}" \
-            --output table > vpc-sg-details.txt || true
-
+          {
+            echo "## Network Interface Cleanup"
+            echo ""
+            echo "- Available ENIs deleted before destroy retry: ${ENI_COUNT}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Terraform Destroy Retry
         if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
         run: terraform destroy -auto-approve -no-color
-
-      - name: VPC Dependency Report
-        if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
-        run: |
-          VPC_ID="$(terraform output -raw -no-color vpc_id 2>/dev/null || true)"
-          VPC_ID="$(printf '%s' "${VPC_ID}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
-
-          if [ -z "${VPC_ID}" ]; then
-            VPC_ID="$(terraform state pull 2>/dev/null | jq -r '.resources[] | select(.type=="aws_vpc") | .instances[0].attributes.id' | head -n1)"
-          fi
-
-          if [ -z "${VPC_ID}" ]; then
-            {
-              echo "## VPC Dependency Report"
-              echo ""
-              echo "- Could not determine VPC ID from state."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          echo "Collecting dependency report for VPC ${VPC_ID}..."
-
-          aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'NetworkInterfaces[].NetworkInterfaceId' --output text > vpc-enis.txt || true
-          aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'Subnets[].SubnetId' --output text > vpc-subnets.txt || true
-          aws ec2 describe-route-tables --filters "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'RouteTables[].RouteTableId' --output text > vpc-rt.txt || true
-          aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'SecurityGroups[].GroupId' --output text > vpc-sg.txt || true
-          aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'InternetGateways[].InternetGatewayId' --output text > vpc-igw.txt || true
-          aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'NatGateways[].NatGatewayId' --output text > vpc-nat.txt || true
-          aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=${VPC_ID}" --region "${{ env.AWS_REGION_VALUE }}" --query 'VpcEndpoints[].VpcEndpointId' --output text > vpc-endpoints.txt || true
-          aws elbv2 describe-load-balancers --region "${{ env.AWS_REGION_VALUE }}" --query "LoadBalancers[?VpcId=='${VPC_ID}'].LoadBalancerArn" --output text > vpc-elbv2.txt || true
-          aws elb describe-load-balancers --region "${{ env.AWS_REGION_VALUE }}" --query "LoadBalancerDescriptions[?VPCId=='${VPC_ID}'].LoadBalancerName" --output text > vpc-elb.txt || true
-
-
-      - name: Post-Destroy Service Report
-        if: github.event.inputs.action == 'destroy'
-        run: |
-          if [ "${{ steps.terraform_destroy.outcome }}" != "success" ]; then
-            echo "## Service Cleanup Status" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Destroy did not complete, so service cleanup status is unknown." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          CLUSTER_NAME="$(terraform output -raw -no-color cluster_name 2>/dev/null || true)"
-          CLUSTER_NAME="$(printf '%s' "${CLUSTER_NAME}" | sed -E 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n')"
-          if [ -z "${CLUSTER_NAME}" ]; then
-            CLUSTER_NAME="eksprod"
-          fi
-
-          CLUSTER_STATUS="$(aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${{ env.AWS_REGION_VALUE }}" --query 'cluster.status' --output text 2>/dev/null || true)"
-          if [ -z "${CLUSTER_STATUS}" ]; then
-            {
-              echo "## Service Cleanup Status"
-              echo ""
-              echo "- Congratulations! All services and the cluster are deleted."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          if [ "${CLUSTER_STATUS}" != "ACTIVE" ]; then
-            {
-              echo "## Service Cleanup Status"
-              echo ""
-              echo "- Cluster status is ${CLUSTER_STATUS}. Service cleanup status cannot be verified."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
-
-          aws eks update-kubeconfig --region "${{ env.AWS_REGION_VALUE }}" --name "${CLUSTER_NAME}"
-
-          kubectl get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' > remaining-lb-services.txt || true
-          kubectl get ingress -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' > remaining-ingresses.txt || true
-
-          if [ ! -s remaining-lb-services.txt ] && [ ! -s remaining-ingresses.txt ]; then
-            {
-              echo "## Service Cleanup Status"
-              echo ""
-              echo "- Congratulations! All services and ingresses are deleted."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          {
-            echo "## Service Cleanup Status"
-            echo ""
-            echo "- Some services or ingresses are still present."
-            echo ""
-            echo "### Remaining LoadBalancer Services"
-            echo ""
-            echo "\`\`\`text"
-            cat remaining-lb-services.txt || true
-            echo "\`\`\`"
-            echo ""
-            echo "### Remaining Ingresses"
-            echo ""
-            echo "\`\`\`text"
-            cat remaining-ingresses.txt || true
-            echo "\`\`\`"
-          } >> "$GITHUB_STEP_SUMMARY"

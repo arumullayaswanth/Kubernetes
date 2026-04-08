@@ -128,18 +128,6 @@ If you choose `destroy`, set:
 
 `confirm_destroy = yes`
 
-## One-Click Apply / Destroy (GitHub Actions)
-
-Use these exact inputs in the **Run workflow** dialog:
-
-Apply (create everything):
-- `action`: `apply`
-- `confirm_destroy`: leave as `no`
-
-Destroy (delete everything):
-- `action`: `destroy`
-- `confirm_destroy`: `yes`
-
 ## How To Deploy The Cluster Through GitHub Actions
 
 1. Push your code to GitHub
