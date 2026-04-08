@@ -10,6 +10,9 @@ Without it:
 - ❌ But no ALB will be created in AWS  
 - ❌ Your application will not be accessible externally  
 
+## 🏗 Architecture
+
+![Architecture Diagram](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/36a708a46f5055aac97986f8efad289697346def/06-ingress/images/architecture.png)
 
 ## 🔄 How It Works
 
