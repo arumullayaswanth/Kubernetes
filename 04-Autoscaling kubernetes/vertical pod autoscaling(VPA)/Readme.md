@@ -35,7 +35,7 @@ vpa-admission-controller
 ###  Step 2.1: Deploy hamster app
 
 ```bash
-kubectl apply -f hamster-deploy.yml
+kubectl apply -f deploy.yml
 ```
 
 ###  Step 2.2: Apply Pod Disruption Budget (PDB)
