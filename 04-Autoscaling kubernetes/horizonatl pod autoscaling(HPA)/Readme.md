@@ -1,175 +1,111 @@
 
+# 📘 HPA (Horizontal Pod Autoscaler) — Step-by-Step Guide
 
-## ✅ Step 0.1 — Check cluster
+#  PART 0  Verify Cluster
+
+###  Step 0.1: Check cluster
 
 ```bash
 kubectl get nodes
 ```
-
-👉 If nodes are visible → ✅ good
+If nodes are visible → cluster is ready
 
 ---
 
-# ⚙️ PART 1 — INSTALL METRICS SERVER (MANDATORY FOR HPA)
+#  PART 1 Install Metrics Server (MANDATORY)
+
+HPA depends on metrics  without this, it **won’t work**.
+
+###  Step 1.1: Install metrics server
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
----
-
-## ✅ Verify
+##  Step 1.2: Verify installation
 
 ```bash
 kubectl get pods -n kube-system
 ```
 
-👉 Look for:
-
 ```
 metrics-server-xxxxx   Running
 ```
 
----
 
-## ✅ Test metrics
+##  Step 1.3: Test metrics
 
 ```bash
 kubectl top nodes
 kubectl top pods
 ```
-
-👉 If data comes → 🎉 HPA will work
-
----
-
-# 🚀 PART 2 — DEPLOY HPA APPLICATION
+ If you see CPU/memory values →  ready for HPA
 
 ---
 
-## 🪜 Step 2.1 — Create Deployment
+#  PART 2— Deploy Application
+
+###  Step 2.1: Create Deployment
 
 ```bash
 kubectl apply -f deploy.yml
 ```
 
----
-
-## ✅ Check
-
-```bash
-kubectl get pods
-kubectl get deployment nginx-hpa
-```
-
-👉 You should see:
-
-```
-1 pod running
-```
-
----
-
-## 🪜 Step 2.2 — Create Service (LoadBalancer)
+### Step 2.2: Create Service (LoadBalancer)
 
 ```bash
 kubectl apply -f service.yml
 ```
 
----
-
-## ✅ Get URL
+### Get external URL
 
 ```bash
 kubectl get svc
 ```
-
-👉 Wait until:
-
-```
-EXTERNAL-IP appears
-```
-
-Copy it:
-
 ```
 http://<your-loadbalancer>
 ```
-
----
-
-## 🪜 Step 2.3 — Create HPA
+###  Step 2.3: Create HPA
 
 ```bash
 kubectl apply -f hpa.yml
 ```
 
----
 
-## ✅ Verify
+####  Verify HPA
 
 ```bash
 kubectl get hpa
 ```
-
-👉 You will see:
+ Example:
 
 ```
 TARGETS   0%/50%
 ```
+ Meaning:
+
+* Current CPU = 0%
+* Target CPU = 50%
 
 ---
 
-# 🔥 PART 3 — TEST HPA (MOST IMPORTANT DEMO)
+# 🔥 PART 3 — Test HPA 
 
 ---
 
-## 🪜 Step 3.1 — Watch pods live
+### 🪜 Step 3.1: Watch pods (Terminal 1)
 
 ```bash
 kubectl get pods -w
 ```
 
-(Keep this running in one terminal)
-
 ---
 
-## 🪜 Step 3.2 — Run load test
-
-Open another terminal:
+### 🪜 Step 3.2: Run load test (Terminal 2)
 
 ```bash
 chmod +x test.sh
 ./test.sh
 ```
 
----
-
-## 👀 What happens
-
-👉 Initially:
-
-```
-1 pod
-```
-
-👉 After load:
-
-```
-2 pods → 3 → 4 → ...
-```
-
----
-
-## 🪜 Step 3.3 — Watch HPA scaling
-
-```bash
-kubectl get hpa -w
-```
-
-👉 You’ll see:
-
-```
-CPU increasing → replicas increasing
-```
 
