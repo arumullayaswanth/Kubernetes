@@ -23,11 +23,12 @@ spec:
       - name: hamster
         image: registry.k8s.io/ubuntu-slim:0.14
 
-        # This command creates CPU load continuously
+         # This command creates CPU load continuously
+        # HIGH CPU LOAD (continuous, no sleep)
         command: ["/bin/sh"]
         args:
         - -c
-        - while true; do timeout 0.5s yes >/dev/null; sleep 0.5s; done
+        - while true; do yes > /dev/null; done
         
         resources:
           requests:
@@ -36,6 +37,7 @@ spec:
           limits:
             cpu: "1"
             memory: 500Mi
+            
               
             
 
