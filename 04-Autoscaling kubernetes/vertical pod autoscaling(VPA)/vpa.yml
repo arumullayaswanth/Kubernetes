@@ -2,24 +2,30 @@ apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: hamster-vpa
-  namespace: default
 spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: hamster
+    name: hamster   # Target deployment
+
   updatePolicy:
-    updateMode: "Recreate"
+    updateMode: "Recreate"   # Restart pod to apply new resources
     minReplicas: 2
+
   resourcePolicy:
     containerPolicies:
     - containerName: "*"
+      
+      # Minimum allowed resources
       minAllowed:
         cpu: 100m
         memory: 50Mi
+      
+      # Maximum allowed resources
       maxAllowed:
         cpu: "1"
         memory: 500Mi
+      
       controlledResources:
       - cpu
       - memory
