@@ -22,4 +22,4 @@ spec:
           requests:
             cpu: "250m"   # Minimum CPU required (IMPORTANT for HPA)
           limits:
-            cpu: "500m"   # Max CPU allowed
+            cpu: "100m"   # Max CPU allowed
