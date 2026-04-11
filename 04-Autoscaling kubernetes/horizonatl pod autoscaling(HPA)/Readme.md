@@ -1,7 +1,7 @@
 
 # HPA (Horizontal Pod Autoscaler) 
 
-#  PART 0  Verify Cluster
+##  PART 0  Verify Cluster
 
 ###  Step 0.1: Check cluster
 
@@ -11,7 +11,7 @@ kubectl get nodes
 If nodes are visible → cluster is ready
 
 
-#  PART 1 Install Metrics Server (MANDATORY)
+##  PART 1 Install Metrics Server (MANDATORY)
 
 HPA depends on metrics  without this, it **won’t work**.
 
@@ -42,7 +42,7 @@ kubectl top pods
 
 ---
 
-#  PART 2— Deploy Application
+##  PART 2 Deploy Application
 
 ###  Step 2.1: Create Deployment
 
@@ -88,9 +88,8 @@ TARGETS   0%/50%
 
 ---
 
-#  PART 3 — Test HPA 
+#  PART 3 Test HPA 
 
----
 
 ###  Step 3.1: Watch pods (Terminal 1)
 
