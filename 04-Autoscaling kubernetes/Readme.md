@@ -1,5 +1,5 @@
 
-# 🔥 Kubernetes Autoscaling (HPA vs VPA)
+#  Kubernetes Autoscaling (HPA vs VPA)
 
 “If traffic increases → Kubernetes adds more pods.”
 
@@ -11,16 +11,16 @@
 
 ---
 
-# 🚀 FULL DEMO FLOW (VIDEO STRUCTURE)
+#  FULL DEMO FLOW 
 
 ## 🔹 Step-by-Step Flow
 
-1. Intro (Autoscaling Story)
+1. Intro 
 2. Setup Metrics Server
 3. Deploy Application
 4. Expose Service
 5. Apply HPA
-6. Run Load Test 🔥
+6. Run Load Test 
 7. Show Scaling (Highlight Moment)
 8. Install VPA
 9. Deploy Hamster App
@@ -30,9 +30,8 @@
 
 ---
 
-# ⚙️ HPA (Horizontal Pod Autoscaler)
+#  HPA (Horizontal Pod Autoscaler)
 
-### 💡 Concept
 
 * Watches CPU / traffic
 * Automatically increases/decreases pods
@@ -41,7 +40,7 @@
 
 ---
 
-# 🧠 VPA (Vertical Pod Autoscaler)
+#  VPA (Vertical Pod Autoscaler)
 
 * Adjusts CPU & memory of existing pod
 
@@ -51,9 +50,9 @@
 
 # ⚔️ KEY CONCEPT (Interview Ready)
 
-## 🔥 HPA vs VPA
+##  HPA vs VPA
 
-| Feature | HPA 🚀              | VPA 🧠                 |
+| Feature | HPA                 | VPA                   |
 | ------- | ------------------- | ---------------------- |
 | Scaling | Horizontal (Pods ↑) | Vertical (Resources ↑) |
 | Trigger | CPU / Traffic spike | Usage trends           |
@@ -62,7 +61,7 @@
 
 
 
-# 🎯 SUMMARY
+#  SUMMARY
 
 * **HPA → Scale OUT (More Pods)**
 * **VPA → Scale UP (More Power per Pod)**
