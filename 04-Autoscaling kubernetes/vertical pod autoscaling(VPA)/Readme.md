@@ -1,4 +1,4 @@
-# 📘 VPA (Vertical Pod Autoscaler) — Step-by-Step Guide
+# 📘 VPA (Vertical Pod Autoscaler)
 
 ## 🧩 PART 1 Install VPA
 
