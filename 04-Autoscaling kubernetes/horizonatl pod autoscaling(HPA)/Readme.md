@@ -1,5 +1,5 @@
 
-# 📘 HPA (Horizontal Pod Autoscaler) — Step-by-Step Guide
+# HPA (Horizontal Pod Autoscaler) 
 
 #  PART 0  Verify Cluster
 
@@ -10,7 +10,6 @@ kubectl get nodes
 ```
 If nodes are visible → cluster is ready
 
----
 
 #  PART 1 Install Metrics Server (MANDATORY)
 
@@ -93,13 +92,11 @@ TARGETS   0%/50%
 
 ---
 
-### 🪜 Step 3.1: Watch pods (Terminal 1)
+###  Step 3.1: Watch pods (Terminal 1)
 
 ```bash
 kubectl get pods -w
 ```
-
----
 
 ###  Step 3.2: Run load test (Terminal 2)
 - Test.sh file update your load balancer
