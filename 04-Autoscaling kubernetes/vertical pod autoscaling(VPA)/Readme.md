@@ -1,6 +1,6 @@
 # 📘 VPA (Vertical Pod Autoscaler)
 
-## 🧩 PART 1 Install VPA
+##  PART 1 Install VPA
 
 ###  Step 1.1: Clone autoscaler repo
 
@@ -20,8 +20,7 @@ cd autoscaler/vertical-pod-autoscaler
 ```bash
 kubectl get pods -n kube-system
 ```
-
-👉 You should see:
+ You should see:
 
 ```
 vpa-recommender
@@ -33,7 +32,7 @@ vpa-admission-controller
 
 #  PART 2  Deploy Application + VPA
 
-### 🪜 Step 2.1: Deploy hamster app
+###  Step 2.1: Deploy hamster app
 
 ```bash
 kubectl apply -f hamster-deploy.yml
