@@ -89,7 +89,7 @@ TARGETS   0%/50%
 
 ---
 
-# 🔥 PART 3 — Test HPA 
+#  PART 3 — Test HPA 
 
 ---
 
@@ -101,8 +101,8 @@ kubectl get pods -w
 
 ---
 
-### 🪜 Step 3.2: Run load test (Terminal 2)
-
+###  Step 3.2: Run load test (Terminal 2)
+- Test.sh file update your load balancer
 ```bash
 chmod +x test.sh
 ./test.sh
