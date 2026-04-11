@@ -1,4 +1,22 @@
 
+
+# 💥 FULL FLOW (YOUR VIDEO STRUCTURE)
+
+1. Intro (autoscaling story)
+2. Metrics server setup
+3. Deploy app
+4. Expose service
+5. Apply HPA
+6. Run load test 🔥
+7. Show scaling (highlight moment)
+8. Install VPA
+9. Deploy hamster
+10. Show recommendation
+11. Show restart
+12. Compare HPA vs VPA
+
+
+
 # 🧠 KEY CONCEPT (Explain in Interview / Video)
 
 ### 🔥 HPA vs VPA
