@@ -20,6 +20,6 @@ spec:
         - containerPort: 80
         resources:
           requests:
-            cpu: "250m"   # Minimum CPU required (IMPORTANT for HPA)
+            cpu: "100m"   # Minimum CPU required (IMPORTANT for HPA)
           limits:
             cpu: "500m"   # Max CPU allowed
