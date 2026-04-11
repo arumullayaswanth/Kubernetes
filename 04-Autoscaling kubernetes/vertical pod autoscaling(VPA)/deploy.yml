@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hamster
-  namespace: default
 spec:
   replicas: 2
   selector:
@@ -19,11 +18,15 @@ spec:
       containers:
       - name: hamster
         image: registry.k8s.io/ubuntu-slim:0.14
+        
+        # This command creates CPU load continuously
         command:
         - /bin/sh
+        
         args:
         - -c
         - while true; do timeout 0.5s yes >/dev/null; sleep 0.5s; done
+        
         resources:
           requests:
             cpu: 100m
