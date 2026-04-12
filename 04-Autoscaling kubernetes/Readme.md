@@ -1,4 +1,4 @@
-
+![Kubernetes Autoscaling Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/4d889f1258a7c4e470cb107a4d505a8cd8ea368c/04-Autoscaling%20kubernetes/Images/Architecture.png)
 #  Kubernetes Autoscaling (HPA vs VPA)
 
 “If traffic increases → Kubernetes adds more pods.”
