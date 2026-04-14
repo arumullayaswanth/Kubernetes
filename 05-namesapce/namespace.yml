@@ -1,17 +1,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: demo
+  name: dev
 ---
 apiVersion: v1
-kind: Pod
+kind: Namespace
 metadata:
-  name: myapp
-  namespace: demo
-  labels:
-      app: webapp
-      type: front-end
-spec:
-  containers:
-  - name: nginx-container
-    image: nginx
+  name: qa
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
