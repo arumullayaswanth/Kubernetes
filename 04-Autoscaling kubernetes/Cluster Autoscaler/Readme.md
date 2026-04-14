@@ -66,7 +66,11 @@ kubectl apply -f scale-test.yaml
 ```bash
 kubectl get pods -w
 ```
-
+What you should see:
+- First ~9 pods go Running on existing 3 nodes
+- Remaining pods go Pending
+- Within 1-2 minutes → new nodes appear as NotReady then Ready
+- Pending pods get scheduled on new nodes
 
 ---
 
