@@ -631,3 +631,90 @@ resource "aws_eks_addon" "ebs_csi" {
     aws_eks_pod_identity_association.ebs_csi
   ]
 }
+
+############################
+# CLUSTER AUTOSCALER
+############################
+
+resource "aws_iam_policy" "cluster_autoscaler" {
+
+  name        = "AmazonEKSClusterAutoscalerPolicy"
+  description = "Allows Cluster Autoscaler to manage Auto Scaling Groups"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:DescribeLaunchConfigurations",
+          "autoscaling:DescribeScalingActivities",
+          "autoscaling:DescribeTags",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeLaunchTemplateVersions",
+          "ec2:GetInstanceTypesFromInstanceRequirements",
+          "eks:DescribeNodegroup"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:TerminateInstanceInAutoScalingGroup"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "eks-cluster-autoscaler-policy"
+  }
+}
+
+resource "aws_iam_role" "cluster_autoscaler_role" {
+
+  name = "AmazonEKSClusterAutoscalerRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "pods.eks.amazonaws.com"
+      }
+      Action = [
+        "sts:AssumeRole",
+        "sts:TagSession"
+      ]
+    }]
+  })
+
+  tags = {
+    Name = "eks-cluster-autoscaler-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_autoscaler" {
+
+  role       = aws_iam_role.cluster_autoscaler_role.name
+  policy_arn = aws_iam_policy.cluster_autoscaler.arn
+}
+
+resource "aws_eks_pod_identity_association" "cluster_autoscaler" {
+
+  cluster_name    = aws_eks_cluster.eks.name
+  namespace       = "kube-system"
+  service_account = "cluster-autoscaler"
+
+  role_arn = aws_iam_role.cluster_autoscaler_role.arn
+
+  depends_on = [
+    aws_iam_role_policy_attachment.cluster_autoscaler,
+    aws_eks_addon.pod_identity
+  ]
+}

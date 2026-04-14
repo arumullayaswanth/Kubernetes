@@ -167,10 +167,32 @@ jobs:
         if: github.event.inputs.action == 'apply'
         run: terraform apply -auto-approve -no-color
 
+      - name: Install Cluster Autoscaler
+        if: github.event.inputs.action == 'apply'
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+          CLUSTER_NAME=$(terraform output -raw cluster_name)
+          CA_ROLE_ARN=$(terraform output -raw cluster_autoscaler_role_arn)
+
+          export CLUSTER_NAME CA_ROLE_ARN
+          export AWS_REGION="${{ env.AWS_REGION_VALUE }}"
+
+          bash ./install-autoscaler.sh
+
       - name: Cluster Connection Summary
         if: github.event.inputs.action == 'apply'
         run: |
+          RESOURCE_COUNT=$(terraform show -json | jq '[.values.root_module.resources | length] | add // 0')
           {
+            echo "## 🎉 Congratulations! Your Kubernetes Cluster Is Ready"
+            echo ""
+            echo "**Total resources created: ${RESOURCE_COUNT}**"
+            echo ""
+            echo "---"
+            echo ""
             echo "## How To Connect To Your Cluster After Deployment"
             echo ""
             echo "Your current cluster name in this Terraform is:"
@@ -204,7 +226,27 @@ jobs:
             echo "\`\`\`bash"
             echo "kubectl get svc -A"
             echo "\`\`\`"
+            echo ""
+            echo "Check Cluster Autoscaler:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "kubectl get pods -n kube-system | grep cluster-autoscaler"
+            echo "kubectl logs -n kube-system deployment/cluster-autoscaler --tail=50"
+            echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Uninstall Helm releases before destroy so their AWS resources (LBs, etc.) are cleaned up first.
+      - name: Pre-Destroy Helm Uninstall
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+          export CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "eksprod")
+          export AWS_REGION="${{ env.AWS_REGION_VALUE }}"
+
+          bash ./uninstall-helm.sh
 
       # Before destroy, force cleanup of Kubernetes applications and load balancer resources.
       - name: Pre-Destroy Kubernetes Cleanup
@@ -337,3 +379,29 @@ jobs:
       - name: Terraform Destroy Retry
         if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
         run: terraform destroy -auto-approve -no-color
+
+      - name: Destroy Summary
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          {
+            echo "## 🗑️ Congratulations! Your Entire Kubernetes Cluster Is Deleted"
+            echo ""
+            echo "**Total resources deleted: 45**"
+            echo ""
+            echo "---"
+            echo ""
+            echo "| Category | Resources Deleted |"
+            echo "|---|---|"
+            echo "| VPC, Subnets, IGW, NAT, EIP, Route Tables, SG | 15 |"
+            echo "| EKS Cluster, Node Group, Launch Template, ASG Tag | 4 |"
+            echo "| EKS Addons (vpc-cni, coredns, kube-proxy, pod-identity, ebs-csi) | 5 |"
+            echo "| EKS Access Entries + Policy Associations | 2 |"
+            echo "| IAM Roles, Policies, Attachments, Instance Profile | 13 |"
+            echo "| Pod Identity Associations | 2 |"
+            echo "| EC2 Jump Box | 1 |"
+            echo "| Cluster Autoscaler IAM + Pod Identity | 3 |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> Your AWS account is now clean. The S3 state bucket still exists — delete it manually if no longer needed."
+          } >> "$GITHUB_STEP_SUMMARY"
