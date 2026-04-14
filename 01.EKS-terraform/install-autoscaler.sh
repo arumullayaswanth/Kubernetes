@@ -12,6 +12,9 @@ set -euo pipefail
 echo "Configuring kubectl for cluster: ${CLUSTER_NAME}"
 aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
 
+echo "Waiting for all nodes to be Ready..."
+kubectl wait --for=condition=Ready nodes --all --timeout=300s
+
 echo "Adding autoscaler Helm repo..."
 helm repo add autoscaler https://kubernetes.github.io/autoscaler
 helm repo update
@@ -26,8 +29,11 @@ helm upgrade --install cluster-autoscaler autoscaler/cluster-autoscaler \
   --set extraArgs.balance-similar-node-groups=true \
   --set extraArgs.skip-nodes-with-system-pods=false \
   --set extraArgs.scale-down-delay-after-add=2m \
-  --set extraArgs.scale-down-unneeded-time=2m \
-  --wait --timeout 3m
+  --set extraArgs.scale-down-unneeded-time=2m
+
+echo "Waiting for Cluster Autoscaler deployment to be available..."
+kubectl rollout status deployment/cluster-autoscaler-aws-cluster-autoscaler \
+  -n kube-system --timeout=300s
 
 echo "Verifying Cluster Autoscaler..."
 kubectl get deployment -n kube-system cluster-autoscaler-aws-cluster-autoscaler
