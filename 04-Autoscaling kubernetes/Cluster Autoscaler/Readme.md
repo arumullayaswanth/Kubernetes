@@ -1,6 +1,6 @@
 # 🎬 Kubernetes Cluster Autoscaler – Setup & Test Guide
 
----
+![Cluster Autoscaler Architecture](https://raw.githubusercontent.com/arumullayaswanth/Kubernetes/120cff33f91b59317e60d3915b74b4e9f58e22d4/04-Autoscaling%20kubernetes/Cluster%20Autoscaler/architecture.jpg)
 
 ## 🧱 Step 1: Verify Installation
 
