@@ -40,7 +40,22 @@ Expected:
 - `ebs-csi-controller` and `ebs-csi-node` pods are running.
 - `ebs.csi.aws.com` appears in `csidriver`.
 
-## 5) AWS Load Balancer Controller
+## 5) Cluster Autoscaler
+
+```bash
+kubectl get deployment -n kube-system cluster-autoscaler-aws-cluster-autoscaler
+kubectl get pods -n kube-system | grep cluster-autoscaler
+kubectl logs -n kube-system deployment/cluster-autoscaler-aws-cluster-autoscaler --tail=50
+```
+
+Expected:
+- `cluster-autoscaler` deployment is `Available`.
+- Pod is `Running`.
+- Logs show `Starting main loop` and no errors.
+
+To test scaling, create a deployment that requests more resources than available nodes can handle. Pending pods should trigger new nodes within 1-2 minutes.
+
+## 6) AWS Load Balancer Controller
 
 ```bash
 kubectl get deployment -n kube-system aws-load-balancer-controller
@@ -51,7 +66,7 @@ Expected:
 - Deployment is `Available`.
 - Controller pods are `Running`.
 
-## 6) Node Group Verification (AWS)
+## 7) Node Group Verification (AWS)
 
 ```bash
 aws eks list-nodegroups --cluster-name eksprod --region us-east-1
@@ -61,7 +76,7 @@ aws eks describe-nodegroup --cluster-name eksprod --nodegroup-name eks-node-grou
 Expected:
 - Node group status shows `ACTIVE`.
 
-## 7) Optional: Test an Ingress (creates an ALB)
+## 8) Optional: Test an Ingress (creates an ALB)
 
 If you want to confirm the Load Balancer Controller is working end-to-end, apply a simple Ingress and check for a new ALB.
 
