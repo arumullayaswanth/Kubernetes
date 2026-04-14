@@ -2,8 +2,8 @@ apiVersion: v1                  # API version for core Kubernetes resources
 kind: LimitRange               # This resource sets default resource limits in a namespace
 
 metadata:
-  name: dev
-  namespace: dev           
+  name: prod
+  namespace: prod           
 
 spec:
   limits:
