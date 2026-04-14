@@ -43,9 +43,9 @@ Expected:
 ## 5) Cluster Autoscaler
 
 ```bash
-kubectl get deployment -n kube-system cluster-autoscaler
+kubectl get deployment -n kube-system cluster-autoscaler-aws-cluster-autoscaler
 kubectl get pods -n kube-system | grep cluster-autoscaler
-kubectl logs -n kube-system deployment/cluster-autoscaler --tail=50
+kubectl logs -n kube-system deployment/cluster-autoscaler-aws-cluster-autoscaler --tail=50
 ```
 
 Expected:

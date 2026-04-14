@@ -30,7 +30,7 @@ helm upgrade --install cluster-autoscaler autoscaler/cluster-autoscaler \
   --wait --timeout 3m
 
 echo "Verifying Cluster Autoscaler..."
-kubectl get deployment -n kube-system cluster-autoscaler
+kubectl get deployment -n kube-system cluster-autoscaler-aws-cluster-autoscaler
 kubectl get pods -n kube-system | grep cluster-autoscaler
 
 echo "Cluster Autoscaler installed successfully."

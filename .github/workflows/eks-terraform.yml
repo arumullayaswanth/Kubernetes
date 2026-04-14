@@ -231,7 +231,7 @@ jobs:
             echo ""
             echo "\`\`\`bash"
             echo "kubectl get pods -n kube-system | grep cluster-autoscaler"
-            echo "kubectl logs -n kube-system deployment/cluster-autoscaler --tail=50"
+            echo "kubectl logs -n kube-system deployment/cluster-autoscaler-aws-cluster-autoscaler --tail=50"
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
