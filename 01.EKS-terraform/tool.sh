@@ -56,3 +56,7 @@ docker --version || true
 # Install Git
 sudo yum install -y git
 git --version || true
+
+
+helm repo add autoscaler https://kubernetes.github.io/autoscaler
+helm repo update
