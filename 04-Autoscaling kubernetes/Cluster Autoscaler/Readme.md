@@ -31,18 +31,30 @@ Create a high-resource pod to trigger autoscaling.
 ### 📄 `stress.yaml`
 
 ```yaml
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: stress-test
+  name: scale-test
 spec:
-  containers:
-  - name: stress
-    image: nginx
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "1"
+  replicas: 20
+  selector:
+    matchLabels:
+      app: scale-test
+  template:
+    metadata:
+      labels:
+        app: scale-test
+    spec:
+      containers:
+      - name: stress
+        image: nginx
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
 ```
 
 ### ▶️ Apply the Pod
@@ -51,12 +63,15 @@ spec:
 kubectl apply -f stress.yaml
 ```
 
+# Terminal 1 - watch pods
+kubectl get pods -w
+
 ---
 
 ## 🔍 Step 3: Watch Autoscaling in Action
 
 Monitor node scaling in real-time:
-
+- Terminal 2 - watch nodes
 ```bash
 kubectl get nodes -w
 ```
