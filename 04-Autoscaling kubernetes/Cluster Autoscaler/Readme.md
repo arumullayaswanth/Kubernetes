@@ -28,7 +28,7 @@ Cluster Autoscaler initialized
 
 Create a high-resource pod to trigger autoscaling.
 
-### 📄 `stress.yaml`
+### 📄 `scale-test.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -60,11 +60,13 @@ spec:
 ### ▶️ Apply the Pod
 
 ```bash
-kubectl apply -f stress.yaml
+kubectl apply -f scale-test.yaml
+```
+- Terminal 1 - watch pods
+```bash
+kubectl get pods -w
 ```
 
-# Terminal 1 - watch pods
-kubectl get pods -w
 
 ---
 
@@ -81,6 +83,15 @@ kubectl get nodes -w
 ```text
 New node joining...
 ```
+
+### To clean up after testing:
+
+```bash
+kubectl delete -f scale-test.yaml
+```
+Then watch nodes scale back down after 2 minutes.
+
+
 
 ---
 
