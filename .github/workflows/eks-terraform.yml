@@ -386,7 +386,7 @@ jobs:
           {
             echo "## 🗑️ Congratulations! Your Entire Kubernetes Cluster Is Deleted"
             echo ""
-            echo "**Total resources deleted: 45**"
+            echo "**Total resources deleted: 47**"
             echo ""
             echo "---"
             echo ""
