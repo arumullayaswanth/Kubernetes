@@ -416,7 +416,7 @@ resource "aws_eks_node_group" "node_group" {
   ]
 
 
-  instance_types = ["t2.large"]
+  instance_types = ["t3.medium"]
 
   scaling_config {
 
