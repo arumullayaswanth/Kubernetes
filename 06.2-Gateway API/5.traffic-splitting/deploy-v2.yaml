@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paytam-v2
+  namespace: traffic-splitting
+  labels:
+    app: paytam
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paytam
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: paytam
+        version: v2
+    spec:
+      containers:
+        - name: paytam
+          image: yaswanth111/swiggy:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
