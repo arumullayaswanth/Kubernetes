@@ -1,0 +1,76 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: paytam-url-rewrite
+  namespace: url-rewrite
+  labels:
+    app: paytam
+spec:
+  parentRefs:
+    - name: paytam-gateway
+      namespace: url-rewrite
+  # REPLACE with your real domain
+  hostnames:
+    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+  rules:
+    # Rule 1 — /app rewrites to /
+    # User hits: https://paytam.yourdomain.com/app
+    # Pod receives: /
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /app
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: paytam-svc
+          port: 80
+
+    # Rule 2 — /paytam rewrites to /
+    # User hits: https://paytam.yourdomain.com/paytam
+    # Pod receives: /
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /paytam
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: paytam-svc
+          port: 80
+
+    # Rule 3 — /api/v1 rewrites to /api
+    # User hits: https://paytam.yourdomain.com/api/v1/users
+    # Pod receives: /api/users
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /api
+      backendRefs:
+        - name: paytam-svc
+          port: 80
+
+    # Rule 4 — default / catch all
+    # User hits: https://paytam.yourdomain.com/anything
+    # Pod receives: /anything (no rewrite)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: paytam-svc
+          port: 80
