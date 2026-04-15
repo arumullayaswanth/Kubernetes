@@ -9,7 +9,7 @@ Routing: AWS ALB via Kubernetes Gateway API
 
 | File | What It Does |
 |---|---|
-| `svc_account.yaml` | Creates a ServiceAccount for the app |
+| `svc_account.yaml` | Creates a ServiceAccount for the app / A Service Account is like an ID card given to a Pod so it can talk to Kubernetes securely|
 | `deploy.yaml` | Deploys paytam app with 2 pods |
 | `svc.yaml` | ClusterIP service — connects Gateway to pods |
 | `gateway_class.yaml` | Tells Kubernetes to use AWS ALB as the Gateway controller |
