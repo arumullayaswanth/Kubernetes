@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paytam-v1
+  namespace: traffic-splitting
+  labels:
+    app: paytam
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: paytam
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: paytam
+        version: v1
+    spec:
+      containers:
+        - name: paytam
+          image: yaswanth111/paytam:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
