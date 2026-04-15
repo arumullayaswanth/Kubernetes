@@ -18,6 +18,20 @@ Routing: AWS ALB via Kubernetes Gateway API
 | `README.md` | This guide |
 
 ---
+When you create a Service Account:
+1.Kubernetes creates:
+- A token
+- A secret
+2.That token is:
+- Mounted inside the Pod automatically
+3.Pod uses this token to:
+- Authenticate with Kubernetes API
+
+👉 So the flow is:
+```bash
+Pod → uses Service Account token → talks to API Server → gets response
+```
+
 
 ## Changes You Must Make Before Deploying
 
