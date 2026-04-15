@@ -61,6 +61,10 @@ The key flag is `--set enableGatewayAPI=true`.
 ```bash
 CLUSTER_NAME="eksprod"
 AWS_REGION="us-east-1"
+NODE_GROUP_NAME="eks-node-group"
+
+# Connect to cluster
+aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
 
 # Fetch VPC ID automatically from your cluster
 VPC_ID=$(aws eks describe-cluster \
@@ -68,8 +72,16 @@ VPC_ID=$(aws eks describe-cluster \
   --region "${AWS_REGION}" \
   --query "cluster.resourcesVpcConfig.vpcId" \
   --output text)
-
 echo "VPC ID: ${VPC_ID}"
+
+# Fetch Node IAM Role ARN automatically
+NODE_ROLE=$(aws eks describe-nodegroup \
+  --cluster-name "${CLUSTER_NAME}" \
+  --nodegroup-name "${NODE_GROUP_NAME}" \
+  --region "${AWS_REGION}" \
+  --query "nodegroup.nodeRole" \
+  --output text)
+echo "Node Role ARN: ${NODE_ROLE}"
 
 # Add Helm repo
 helm repo add eks https://aws.github.io/eks-charts
@@ -82,7 +94,8 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set serviceAccount.create=true \
   --set region="${AWS_REGION}" \
   --set vpcId="${VPC_ID}" \
-  --set enableGatewayAPI=true
+  --set enableGatewayAPI=true \
+  --set "serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${NODE_ROLE}"
 ```
 
 Verify controller is running:
@@ -208,6 +221,20 @@ Check controller logs:
 ```bash
 kubectl logs -n kube-system deployment/aws-load-balancer-controller --tail=100
 ```
+
+### no EC2 IMDS role found — failed to refresh cached credentials
+
+The controller has no IAM permissions to call AWS APIs.
+This means the Node IAM Role was not attached during install.
+
+Fix — uninstall and reinstall with the node role:
+
+```bash
+helm uninstall aws-load-balancer-controller -n kube-system
+```
+
+Then run the install command again from Step 2 above.
+The `NODE_ROLE` is fetched automatically — no manual input needed.
 
 ### CRDs not found error when applying gateway.yaml
 
