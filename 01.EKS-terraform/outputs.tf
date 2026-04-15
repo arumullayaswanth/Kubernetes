@@ -87,3 +87,17 @@ output "cluster_autoscaler_role_arn" {
   description = "IAM role ARN used by the Cluster Autoscaler."
   value       = aws_iam_role.cluster_autoscaler_role.arn
 }
+
+############################
+# oidc output
+############################
+
+output "oidc_provider_arn" {
+  description = "OIDC provider ARN for the EKS cluster."
+  value       = aws_iam_openid_connect_provider.eks.arn
+}
+
+output "oidc_provider_url" {
+  description = "OIDC provider URL for the EKS cluster."
+  value       = aws_iam_openid_connect_provider.eks.url
+}
