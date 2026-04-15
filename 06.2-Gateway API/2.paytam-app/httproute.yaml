@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: paytam-route
+  namespace: paytam
+  labels:
+    app: paytam
+spec:
+  parentRefs:
+    - name: paytam-gateway
+      namespace: paytam
+  # ---------------------------------------------------------------
+  # REPLACE with your real domain
+  # Example: paytam.aluru.com
+  # ---------------------------------------------------------------
+  hostnames:
+    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: paytam-svc
+          port: 80
