@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paytam-ingress
+  namespace: default
+  annotations:
+    # ALB type and visibility
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+    # HTTPS only — HTTP redirects to HTTPS
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    # ---------------------------------------------------------------
+    # REPLACE THIS with your real ACM certificate ARN
+    # How to get it:
+    #   AWS Console → Certificate Manager → your cert → copy ARN
+    # Example:
+    #   arn:aws:acm:us-east-1:713939171080:certificate/abc123-xxxx
+    # ---------------------------------------------------------------
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:YOUR_ACCOUNT_ID:certificate/YOUR_CERTIFICATE_ID
+
+    # Health check settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+
+    # Security — only HTTPS traffic allowed
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+
+    # Tags for cost tracking
+    alb.ingress.kubernetes.io/tags: Environment=production,Project=paytam,ManagedBy=Kubernetes
+
+spec:
+  ingressClassName: alb
+  rules:
+    # ---------------------------------------------------------------
+    # REPLACE THIS with your real subdomain
+    # Example: paytam.aluru.com  or  app.aluru.com
+    # ---------------------------------------------------------------
+    - host: YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paytam-svc
+                port:
+                  number: 80
