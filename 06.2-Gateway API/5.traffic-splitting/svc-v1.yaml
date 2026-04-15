@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: paytam-svc-v1
+  namespace: traffic-splitting
+  labels:
+    app: paytam
+    version: v1
+spec:
+  type: ClusterIP
+  selector:
+    app: paytam
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
