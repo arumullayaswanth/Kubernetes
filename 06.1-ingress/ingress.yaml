@@ -43,6 +43,8 @@ spec:
     # REPLACE THIS with your real subdomain
     # Example: paytam.aluru.com  or  app.aluru.com
     # ---------------------------------------------------------------
+    # Remove the host line from ingress so ALB accepts all requests
+    # host-based routing rule to host
     - host: YOUR_SUBDOMAIN.YOUR_DOMAIN.com
       http:
         paths:
