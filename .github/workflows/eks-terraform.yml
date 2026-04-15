@@ -313,6 +313,11 @@ jobs:
           jq -r '.[]' private-subnet-ids.json > subnet-ids.txt
           jq -r '.[]' public-subnet-ids.json >> subnet-ids.txt
 
+          # Capture resource count before destroy
+          RESOURCE_COUNT=$(terraform show -json | jq '[.values.root_module.resources | length] | add // 0')
+          echo "${RESOURCE_COUNT}" > resource-count.txt
+          echo "Resources to destroy: ${RESOURCE_COUNT}"
+
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
         id: terraform_destroy
@@ -383,23 +388,25 @@ jobs:
       - name: Destroy Summary
         if: github.event.inputs.action == 'destroy'
         run: |
+          RESOURCE_COUNT=$(cat resource-count.txt 2>/dev/null || echo "0")
           {
             echo "## 🗑️ Congratulations! Your Entire Kubernetes Cluster Is Deleted"
             echo ""
-            echo "**Total resources deleted: 47**"
+            echo "**Total resources deleted: ${RESOURCE_COUNT}**"
             echo ""
             echo "---"
             echo ""
             echo "| Category | Resources Deleted |"
             echo "|---|---|"
             echo "| VPC, Subnets, IGW, NAT, EIP, Route Tables, SG | 15 |"
-            echo "| EKS Cluster, Node Group, Launch Template, ASG Tag | 4 |"
+            echo "| EKS Cluster, Node Group, Launch Template, ASG Tags | 6 |"
             echo "| EKS Addons (vpc-cni, coredns, kube-proxy, pod-identity, ebs-csi) | 5 |"
             echo "| EKS Access Entries + Policy Associations | 2 |"
-            echo "| IAM Roles, Policies, Attachments, Instance Profile | 13 |"
+            echo "| IAM Roles, Policies, Attachments, Instance Profile | 15 |"
             echo "| Pod Identity Associations | 2 |"
             echo "| EC2 Jump Box | 1 |"
             echo "| Cluster Autoscaler IAM + Pod Identity | 3 |"
+            echo "| OIDC Provider | 1 |"
             echo ""
             echo "---"
             echo ""
