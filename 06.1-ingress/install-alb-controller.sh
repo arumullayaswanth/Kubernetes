@@ -3,25 +3,14 @@ set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # Installs the AWS Load Balancer Controller on EKS.
-# Run this script from your EC2 jump box or any machine with:
-#   - kubectl configured for your cluster
-#   - helm installed
-#   - aws cli configured
-#1. aws eks update-kubeconfig  → connects kubectl to your cluster
-#2. aws eks describe-cluster   → fetches VPC ID automatically
-#3. aws eks describe-nodegroup → fetches Node IAM Role ARN automatically
-#4. helm repo add              → adds the Helm repo
-#5. helm upgrade --install     → installs the controller with all correct values
-#6. kubectl rollout status     → waits until controller is ready
-#7. kubectl get pods           → shows you the running pods
-
+# Permissions come from the EC2 node instance profile — no OIDC needed.
+# Run this script from your EC2 jump box.
 # ---------------------------------------------------------------------------
 
 CLUSTER_NAME="eksprod"
 AWS_REGION="us-east-1"
-NODE_GROUP_NAME="eks-node-group"
 
-echo "Connecting to cluster..."
+echo "Connecting to cluster: ${CLUSTER_NAME}"
 aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
 
 echo "Getting VPC ID..."
@@ -31,15 +20,6 @@ VPC_ID=$(aws eks describe-cluster \
   --query "cluster.resourcesVpcConfig.vpcId" \
   --output text)
 echo "VPC ID: ${VPC_ID}"
-
-echo "Getting Node IAM Role ARN..."
-NODE_ROLE=$(aws eks describe-nodegroup \
-  --cluster-name "${CLUSTER_NAME}" \
-  --nodegroup-name "${NODE_GROUP_NAME}" \
-  --region "${AWS_REGION}" \
-  --query "nodegroup.nodeRole" \
-  --output text)
-echo "Node Role ARN: ${NODE_ROLE}"
 
 echo "Adding EKS Helm repo..."
 helm repo add eks https://aws.github.io/eks-charts
@@ -51,8 +31,7 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set clusterName="${CLUSTER_NAME}" \
   --set serviceAccount.create=true \
   --set region="${AWS_REGION}" \
-  --set vpcId="${VPC_ID}" \
-  --set "serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${NODE_ROLE}"
+  --set vpcId="${VPC_ID}"
 
 echo "Waiting for controller to be ready..."
 kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
