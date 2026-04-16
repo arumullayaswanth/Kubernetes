@@ -4,6 +4,8 @@ URL Rewrite means the URL the user types in the browser is different from the UR
 
 ---
 
+---
+
 ## What Is URL Rewrite
 
 Without rewrite:
