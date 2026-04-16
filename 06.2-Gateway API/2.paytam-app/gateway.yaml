@@ -3,49 +3,9 @@ kind: Gateway
 metadata:
   name: paytam-gateway
   namespace: paytam
-  annotations:
-    # ALB scheme — internet-facing means public ALB
-    alb.ingress.kubernetes.io/scheme: internet-facing
-
-    # Target type ip — traffic goes directly to pod IPs
-    alb.ingress.kubernetes.io/target-type: ip
-
-    # Listen on HTTP 80 and HTTPS 443
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-
-    # Force HTTP to redirect to HTTPS
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
-
-    # ---------------------------------------------------------------
-    # REPLACE with your ACM certificate ARN
-    # AWS Console → Certificate Manager → your cert → copy ARN
-    # ---------------------------------------------------------------
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:YOUR_ACCOUNT_ID:certificate/YOUR_CERTIFICATE_ID
-
-    # Health check
-    alb.ingress.kubernetes.io/healthcheck-path: /
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
-    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
-
-    # TLS security policy
-    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
-
-    # Cost tracking tags
-    alb.ingress.kubernetes.io/tags: Environment=production,Project=paytam,ManagedBy=GatewayAPI
-
 spec:
-  gatewayClassName: alb
+  gatewayClassName: gateway-api
   listeners:
     - name: http
       protocol: HTTP
       port: 80
-    - name: https
-      protocol: HTTPS
-      port: 443
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: paytam-tls
