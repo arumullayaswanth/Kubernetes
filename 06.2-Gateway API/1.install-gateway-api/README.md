@@ -104,7 +104,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: eg
+  name: gateway-api
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 EOF
@@ -119,8 +119,8 @@ kubectl get gatewayclass
 Expected:
 
 ```
-NAME   CONTROLLER                                       ACCEPTED
-eg     gateway.envoyproxy.io/gatewayclass-controller    True
+NAME          CONTROLLER                                       ACCEPTED
+gateway-api   gateway.envoyproxy.io/gatewayclass-controller    True
 ```
 
 `ACCEPTED = True` means Envoy Gateway is ready to handle Gateway resources.
@@ -149,11 +149,11 @@ kubectl logs -n gateway-system deployment/envoy-gateway --tail=10
 
 Go to the `2.paytam-app` folder and update `gateway.yaml`:
 
-Change `gatewayClassName` from `alb` to `eg`:
+Change `gatewayClassName` from `alb` to `gateway-api`:
 
 ```yaml
 spec:
-  gatewayClassName: eg    # use eg for Envoy Gateway
+  gatewayClassName: gateway-api    # use gateway-api for Envoy Gateway
 ```
 
 Then deploy:
