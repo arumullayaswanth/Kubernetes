@@ -4,6 +4,60 @@ App image: `yaswanth111/paytam:latest`
 Routing: AWS ALB via Kubernetes Gateway API
 
 ---
+---
+
+## 1. paytam-app — Basic Gateway Routing
+
+One app, one domain, straight through routing.
+
+```
+                        ┌─────────────────────────────────────────┐
+                        │           INTERNET                       │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         Route53 DNS                      │
+                        │   paytam.yourdomain.com → ALB            │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         AWS ALB                          │
+                        │   Port 80  → redirect to 443            │
+                        │   Port 443 → HTTPS with ACM cert        │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         Gateway Resource                 │
+                        │   gatewayClassName: alb                  │
+                        │   namespace: paytam                      │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         HTTPRoute                        │
+                        │   host: paytam.yourdomain.com           │
+                        │   path: /  →  paytam-svc:80             │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         ClusterIP Service                │
+                        │         paytam-svc:80                    │
+                        └──────────┬────────────┬─────────────────┘
+                                   │            │
+                                   ▼            ▼
+                             ┌──────────┐ ┌──────────┐
+                             │  Pod 1   │ │  Pod 2   │
+                             │  paytam  │ │  paytam  │
+                             └──────────┘ └──────────┘
+
+Concept: Single app exposed via Gateway API with HTTPS.
+         User hits domain → ALB → Gateway → HTTPRoute → Service → Pods.
+```
+---
 
 ## Files In This Folder
 
