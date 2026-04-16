@@ -2,7 +2,58 @@
 
 URL Rewrite means the URL the user types in the browser is different from the URL the pod receives.
 
----
+
+## 2. url-rewrite URL Rewrite Routing
+
+User types one URL, pod receives a different URL.
+
+```
+                        ┌─────────────────────────────────────────┐
+                        │           INTERNET                       │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                              User types different paths
+                                           │
+                    ┌──────────────────────┼──────────────────────┐
+                    │                      │                       │
+                    ▼                      ▼                       ▼
+             /app/dashboard          /paytam/home            /api/v1/users
+                    │                      │                       │
+                    └──────────────────────┼──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         AWS ALB + Gateway                │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         HTTPRoute — URL Rewrite Rules    │
+                        │                                          │
+                        │  /app/*       →  rewrite to  /*         │
+                        │  /paytam/*    →  rewrite to  /*         │
+                        │  /api/v1/*    →  rewrite to  /api/*     │
+                        │  /*           →  no rewrite             │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                              Pod receives rewritten URL
+                                           │
+                    ┌──────────────────────┼──────────────────────┐
+                    │                      │                       │
+                    ▼                      ▼                       ▼
+             /dashboard              /home               /api/users
+                    │                      │                       │
+                    └──────────────────────┼──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         paytam-svc → Pods                │
+                        └─────────────────────────────────────────┘
+
+Concept: Public URL is different from internal URL.
+         Gateway rewrites the path before forwarding to the pod.
+         Pod never sees /app or /paytam — it only sees /.
+```
 
 ---
 
