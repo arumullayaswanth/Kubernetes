@@ -1,4 +1,4 @@
-# Paytam App — Gateway API Deployment Guide
+# Paytam App Gateway API Deployment Guide
 
 App image: `yaswanth111/paytam:latest`
 Routing: AWS ALB via Kubernetes Gateway API
