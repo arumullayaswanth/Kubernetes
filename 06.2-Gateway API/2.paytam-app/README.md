@@ -148,59 +148,21 @@ ip-10-0-3-177.ec2.internal   Ready    <none>   10m
 ip-10-0-3-55.ec2.internal    Ready    <none>   10m
 ip-10-0-4-233.ec2.internal   Ready    <none>   10m
 ```
+--- 
 
----
 
-## Step 2 — Verify Gateway API CRDs Are Installed
-
-```bash
-kubectl get crd | grep gateway
-```
-
-Expected — must see these 4:
-
-```
-gatewayclasses.gateway.networking.k8s.io
-gateways.gateway.networking.k8s.io
-httproutes.gateway.networking.k8s.io
-referencegrants.gateway.networking.k8s.io
-```
-
-If missing, install them:
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-```
-
----
-
-## Step 3 — Verify AWS Load Balancer Controller Is Running
-
-```bash
-kubectl get pods -n kube-system | grep aws-load-balancer-controller
-```
-
-Expected — 2 pods Running:
-
-```
-aws-load-balancer-controller-xxxx   1/1   Running   0
-aws-load-balancer-controller-yyyy   1/1   Running   0
-```
-
-If not installed, go to `../install-gateway-api/README.md` and follow the steps.
-
----
-
-## Step 4 — Deploy Everything
+## Step 2 — Deploy Everything
 
 Apply in this exact order:
 
 ```bash
 # 1. Create paytam namespace
 kubectl apply -f namespace.yaml
+kubectl get ns
 
 # 2. Create ServiceAccount
 kubectl apply -f svc_account.yaml
+
 
 # 3. Deploy the app
 kubectl apply -f deploy.yaml
@@ -225,13 +187,13 @@ kubectl apply -f httproute.yaml
 Check ServiceAccount:
 
 ```bash
-kubectl get serviceaccount paytam-sa
+kubectl get sa -n paytam
 ```
 
 Check pods:
 
 ```bash
-kubectl get pods
+kubectl get pods -n paytam
 ```
 
 Expected:
@@ -245,7 +207,7 @@ paytam-yyyy               1/1     Running   0
 Check service:
 
 ```bash
-kubectl get svc paytam-svc
+kubectl get svc -n paytam
 ```
 
 Expected:
@@ -271,7 +233,7 @@ alb    ingress.k8s.aws/alb         True
 Check Gateway — wait 2-3 minutes for ALB to be created:
 
 ```bash
-kubectl get gateway paytam-gateway
+kubectl get gateway -n paytam
 ```
 
 Expected:
@@ -286,7 +248,7 @@ paytam-gateway   alb     k8s-default-paytamga-xxxx.elb.amazonaws.com     True
 Check HTTPRoute:
 
 ```bash
-kubectl get httproute paytam-route
+kubectl get httproute -n paytam
 ```
 
 Expected:
