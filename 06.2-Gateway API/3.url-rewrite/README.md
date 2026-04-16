@@ -1,4 +1,4 @@
-# URL Rewrite — Gateway API
+# URL Rewrite Gateway API
 
 URL Rewrite means the URL the user types in the browser is different from the URL the pod receives.
 
