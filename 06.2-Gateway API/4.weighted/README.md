@@ -4,6 +4,53 @@ Namespace: `weighted`
 
 ---
 
+## 4. weighted — Equal Split (50% / 50%, No Weight Mentioned)
+
+Two backends, no weight specified — Kubernetes splits equally.
+
+```
+                        ┌─────────────────────────────────────────┐
+                        │           INTERNET                       │
+                        │         100 users visit                  │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         AWS ALB + Gateway                │
+                        └──────────────────┬──────────────────────┘
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │         HTTPRoute                        │
+                        │                                          │
+                        │   backendRefs:                           │
+                        │   - name: paytam-svc-v1  ← no weight    │
+                        │   - name: paytam-svc-v2  ← no weight    │
+                        │                                          │
+                        │   Result: Kubernetes defaults to 50/50   │
+                        └──────────┬────────────────┬─────────────┘
+                                   │                │
+                          50 users │                │ 50 users
+                                   │                │
+                                   ▼                ▼
+                    ┌──────────────────┐  ┌──────────────────────┐
+                    │  paytam-svc-v1   │  │   paytam-svc-v2      │
+                    └────────┬─────────┘  └──────────┬───────────┘
+                             │                        │
+                    ┌────────┴─────────┐   ┌──────────┴──────────┐
+                    │                  │   │                      │
+                    ▼                  ▼   ▼                      ▼
+              ┌──────────┐      ┌──────────┐              ┌──────────┐
+              │  Pod v1  │      │  Pod v1  │              │  Pod v2  │
+              │  paytam  │      │  paytam  │              │  swiggy  │
+              └──────────┘      └──────────┘              └──────────┘
+
+Concept: When weight is NOT mentioned, all backends get equal share.
+         2 backends = 50/50.
+         3 backends = 33/33/33.
+         This is Kubernetes default behavior.
+```
+
 ---
 
 ## The Key Concept
