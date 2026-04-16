@@ -4,7 +4,6 @@ App image: `yaswanth111/paytam:latest`
 Routing: AWS ALB via Kubernetes Gateway API
 
 ---
----
 
 ## 1. paytam-app — Basic Gateway Routing
 
