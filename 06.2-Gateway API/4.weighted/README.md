@@ -6,52 +6,6 @@ Namespace: `weighted`
 
 ---
 
-## 3. traffic-splitting — Canary Deployment (90% / 10%)
-
-Gradually roll out a new version to a small percentage of users.
-
-```
-                        ┌─────────────────────────────────────────┐
-                        │           INTERNET                       │
-                        │         100 users visit                  │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                                           ▼
-                        ┌─────────────────────────────────────────┐
-                        │         AWS ALB + Gateway                │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                                           ▼
-                        ┌─────────────────────────────────────────┐
-                        │         HTTPRoute — Traffic Split        │
-                        │                                          │
-                        │         weight: 90    weight: 10         │
-                        └──────────┬────────────────┬─────────────┘
-                                   │                │
-                          90 users │                │ 10 users
-                                   │                │
-                                   ▼                ▼
-                    ┌──────────────────┐  ┌──────────────────────┐
-                    │  paytam-svc-v1   │  │   paytam-svc-v2      │
-                    │  (stable)        │  │   (canary)           │
-                    └────────┬─────────┘  └──────────┬───────────┘
-                             │                        │
-                    ┌────────┴─────────┐   ┌──────────┴──────────┐
-                    │                  │   │                      │
-                    ▼                  ▼   ▼                      ▼
-              ┌──────────┐      ┌──────────┐              ┌──────────┐
-              │  Pod v1  │      │  Pod v1  │              │  Pod v2  │
-              │  paytam  │      │  paytam  │              │  swiggy  │
-              └──────────┘      └──────────┘              └──────────┘
-
-Concept: New version (v2/swiggy) gets only 10% of traffic.
-         If v2 has no issues → increase weight gradually.
-         If v2 has issues   → set weight to 0 → instant rollback.
-         No downtime. No redeployment needed to change split.
-```
-
----
-
 ## The Key Concept
 
 In Gateway API HTTPRoute, if you list multiple backends and do NOT mention `weight`:
