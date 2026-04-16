@@ -1,8 +1,41 @@
-# Weighted Routing  No Weight Mentioned = 50/50
+# Section 4 :  Weighted Routing: No Weight = 50/50
 
+Apps: `yaswanth111/paytam:latest` (v1) + `yaswanth111/swiggy:latest` (v2)
 Namespace: `weighted`
+Domain: `tagent.cfd`
+Controller: Envoy Gateway (`gateway-api`)
+TLS: cert-manager + Let's Encrypt
 
 ---
+
+## Concept
+
+When you list multiple backends and do NOT mention `weight` — Kubernetes splits equally:
+
+```yaml
+backendRefs:
+- name: paytam-svc-v1   # no weight → 50%
+  port: 80
+- name: paytam-svc-v2   # no weight → 50%
+  port: 80
+```
+
+- 2 backends = 50/50
+- 3 backends = 33/33/33
+- This is Kubernetes default behavior
+
+---
+
+## Difference From traffic-splitting
+
+| | `4.weighted` | `5.traffic-splitting` |
+|---|---|---|
+| Weight mentioned | No | Yes (90/10) |
+| Result | 50% v1, 50% v2 | 90% v1, 10% v2 |
+| Use case | Blue-Green equal split | Canary gradual rollout |
+
+---
+
 
 ## 4. weighted — Equal Split (50% / 50%, No Weight Mentioned)
 
@@ -16,7 +49,7 @@ Two backends, no weight specified — Kubernetes splits equally.
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         AWS ALB + Gateway                │
+                        │        Envoy Gateway                    │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
@@ -51,73 +84,47 @@ Concept: When weight is NOT mentioned, all backends get equal share.
          This is Kubernetes default behavior.
 ```
 
----
-
-## The Key Concept
-
-In Gateway API HTTPRoute, if you list multiple backends and do NOT mention `weight`:
-
-```yaml
-backendRefs:
-- name: paytam-svc-v1
-  port: 80
-- name: paytam-svc-v2
-  port: 80
-```
-
-Kubernetes automatically treats them as **equal weight — 50% each**.
-
-Compare with traffic-splitting folder where weight is explicitly set:
-
-```yaml
-backendRefs:
-- name: paytam-svc-v1
-  port: 80
-  weight: 90      # explicit 90%
-- name: paytam-svc-v2
-  port: 80
-  weight: 10      # explicit 10%
-```
 
 ---
 
-## Difference Between This Folder And traffic-splitting
-
-| | traffic-splitting | weighted |
-|---|---|---|
-| Weight mentioned | Yes — 90/10 | No |
-| Result | 90% v1, 10% v2 | 50% v1, 50% v2 |
-| Use case | Canary — gradual rollout | Blue-Green — equal split |
-
----
-
-## Files
+## Files In This Folder
 
 | File | Purpose |
 |---|---|
 | `namespace.yaml` | Creates `weighted` namespace |
-| `deploy-v1.yaml` | v1 deployment — 2 replicas |
-| `deploy-v2.yaml` | v2 deployment — 2 replicas |
-| `svc-v1.yaml` | Service for v1 |
-| `svc-v2.yaml` | Service for v2 |
-| `gateway.yaml` | Creates AWS ALB |
+| `deploy-v1.yaml` | v1 — `yaswanth111/paytam:latest` (2 replicas) |
+| `deploy-v2.yaml` | v2 — `yaswanth111/swiggy:latest` (2 replicas) |
+| `svc-v1.yaml` | ClusterIP service for v1 pods |
+| `svc-v2.yaml` | ClusterIP service for v2 pods |
+| `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 |
 | `httproute.yaml` | No weight — automatic 50/50 split |
+| `certificate.yaml` | cert-manager Certificate for `tagent.cfd` |
 | `README.md` | This guide |
 
 ---
 
-## Changes Before Deploying
+## Pre-Requirements
 
-**In `gateway.yaml` — replace certificate ARN:**
+- [ ] Envoy Gateway installed — `0.install-gateway-api/README.md`
+- [ ] GatewayClass `gateway-api` ACCEPTED = True
+- [ ] cert-manager installed — `1.cert-manager/README.md`
+- [ ] ClusterIssuer `letsencrypt-prod` READY = True
+- [ ] DNS pointing to Gateway ADDRESS
+
+---
+
+## Change Before Deploying
+
+Open `httproute.yaml` and replace the domain placeholder:
 
 ```yaml
-alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:713939171080:certificate/abc12345-xxxx
-```
+# BEFORE
+hostnames:
+  - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
 
-**In `httproute.yaml` — replace domain:**
-
-```yaml
-- paytam.aluru.com
+# AFTER
+hostnames:
+  - tagent.cfd
 ```
 
 ---
@@ -125,13 +132,28 @@ alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:713939171080:ce
 ## Deploy
 
 ```bash
+# Step 1 — create namespace and both apps
 kubectl apply -f namespace.yaml
 kubectl apply -f deploy-v1.yaml
 kubectl apply -f deploy-v2.yaml
 kubectl apply -f svc-v1.yaml
 kubectl apply -f svc-v2.yaml
+
+# Step 2 — create gateway and route (HTTP only first)
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
+
+# Step 3 — get ADDRESS and point DNS
+kubectl get gateway -n weighted
+
+# Step 4 — apply certificate after DNS is ready
+kubectl apply -f certificate.yaml
+
+# Step 5 — wait for cert READY = True
+kubectl get certificate -n weighted -w
+
+# Step 6 — reapply gateway (HTTPS now active)
+kubectl apply -f gateway.yaml
 ```
 
 ---
@@ -139,29 +161,34 @@ kubectl apply -f httproute.yaml
 ## Verify
 
 ```bash
-# Check all pods running
 kubectl get pods -n weighted
-
-# Check services
 kubectl get svc -n weighted
-
-# Check gateway — wait 2-3 min for ALB
 kubectl get gateway -n weighted
-
-# Check httproute
 kubectl get httproute -n weighted
+kubectl get certificate -n weighted
+kubectl get secret cert-manager-tls -n weighted
+```
+
+Expected pods:
+
+```
+NAME                         READY   STATUS
+paytam-v1-xxxx               1/1     Running
+paytam-v1-yyyy               1/1     Running
+paytam-v2-xxxx               1/1     Running
+paytam-v2-yyyy               1/1     Running
 ```
 
 ---
 
 ## Test 50/50 Split
 
-Get ALB address:
+Get Gateway address:
 
 ```bash
-ALB=$(kubectl get gateway paytam-gateway \
-  -n weighted \
+GW=$(kubectl get gateway paytam-gateway -n weighted \
   -o jsonpath='{.status.addresses[0].value}')
+echo "Gateway: ${GW}"
 ```
 
 Send 10 requests:
@@ -169,17 +196,26 @@ Send 10 requests:
 ```bash
 for i in $(seq 1 10); do
   echo -n "Request $i: "
-  curl -s -H "Host: paytam.yourdomain.com" http://${ALB} | head -1
+  curl -s -H "Host: tagent.cfd" http://${GW} | head -1
 done
 ```
 
-Expected — roughly 5 requests go to v1 and 5 go to v2.
+Expected — roughly 5 requests to paytam, 5 to swiggy.
+
+Test with real domain:
+
+```bash
+curl https://tagent.cfd
+```
+
+Refresh multiple times — alternates between paytam and swiggy.
 
 ---
 
 ## Clean Up
 
 ```bash
+kubectl delete -f certificate.yaml
 kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
 kubectl delete -f svc-v1.yaml
@@ -187,4 +223,26 @@ kubectl delete -f svc-v2.yaml
 kubectl delete -f deploy-v1.yaml
 kubectl delete -f deploy-v2.yaml
 kubectl delete -f namespace.yaml
+```
+
+---
+
+## Troubleshooting
+
+### All traffic going to one version
+
+Check HTTPRoute:
+
+```bash
+kubectl describe httproute paytam-weighted -n weighted
+```
+
+### Pods not receiving traffic
+
+Check service selectors match pod labels:
+
+```bash
+kubectl get pods -n weighted --show-labels
+kubectl describe svc paytam-svc-v1 -n weighted
+kubectl describe svc paytam-svc-v2 -n weighted
 ```

@@ -1,4 +1,4 @@
-# URL Rewrite Gateway API
+# Section 3 — URL Rewrite: Gateway API
 
 URL Rewrite means the URL the user types in the browser is different from the URL the pod receives.
 
@@ -9,7 +9,7 @@ User types one URL, pod receives a different URL.
 
 ```
                         ┌─────────────────────────────────────────┐
-                        │           INTERNET                       │
+                        │ INTERNET (User → https://tagent.cfd/app/home)  │
                         └──────────────────┬──────────────────────┘
                                            │
                               User types different paths
@@ -23,7 +23,7 @@ User types one URL, pod receives a different URL.
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         AWS ALB + Gateway                │
+                        │         Envoy Gateway                   │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
@@ -89,154 +89,131 @@ This is useful when:
 
 ---
 
-## Files
+## Files In This Folder
 
 | File | Purpose |
 |---|---|
-| `deploy.yaml` | Deploys paytam app |
-| `svc.yaml` | ClusterIP service |
-| `gateway.yaml` | Creates AWS ALB |
+| `namespace.yaml` | Creates `url-rewrite` namespace |
+| `deploy.yaml` | Deploys `yaswanth111/paytam:latest` with 2 replicas |
+| `svc.yaml` | ClusterIP service `paytam-svc` on port 80 |
+| `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 |
 | `httproute.yaml` | URL rewrite routing rules |
+| `certificate.yaml` | cert-manager Certificate for `tagent.cfd` |
 | `README.md` | This guide |
+
+---
+## Pre-Requirements
+
+- [ ] Envoy Gateway installed — `0.install-gateway-api/README.md`
+- [ ] GatewayClass `gateway-api` ACCEPTED = True
+- [ ] cert-manager installed — `1.cert-manager/README.md`
+- [ ] ClusterIssuer `letsencrypt-prod` READY = True
+- [ ] DNS pointing to Gateway ADDRESS
 
 ---
 
 ## Changes Before Deploying
-
-**In `gateway.yaml` — replace certificate ARN:**
-
-```yaml
-# BEFORE
-alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:YOUR_ACCOUNT_ID:certificate/YOUR_CERTIFICATE_ID
-
-# AFTER
-alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:713939171080:certificate/abc12345-xxxx
-```
-
-**In `httproute.yaml` — replace domain:**
+Open `httproute.yaml` and replace the domain placeholder:
 
 ```yaml
 # BEFORE
-- YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+hostnames:
+  - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
 
 # AFTER
-- paytam.aluru.com
+hostnames:
+  - tagent.cfd
 ```
 
 ---
 
 ## Deploy
-
 ```bash
+# Step 1 — create namespace and app
 kubectl apply -f namespace.yaml
 kubectl apply -f deploy.yaml
 kubectl apply -f svc.yaml
+
+# Step 2 — create gateway and route (HTTP only first)
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
-```
 
-Wait 2-3 minutes for ALB to be created:
+# Step 3 — get ADDRESS and point DNS
+kubectl get gateway -n url-rewrite
 
-```bash
-kubectl get gateway paytam-gateway
-```
+# Step 4 — apply certificate after DNS is ready
+kubectl apply -f certificate.yaml
 
-Expected:
+# Step 5 — wait for cert READY = True
+kubectl get certificate -n url-rewrite -w
 
-```
-NAME             CLASS   ADDRESS                                        PROGRAMMED
-paytam-gateway   alb     k8s-default-paytamga-xxxx.elb.amazonaws.com   True
+# Step 6 — reapply gateway (HTTPS now active)
+kubectl apply -f gateway.yaml
 ```
 
 ---
+
+## Verify
+
+```bash
+kubectl get pods -n url-rewrite
+kubectl get svc -n url-rewrite
+kubectl get gateway -n url-rewrite
+kubectl get httproute -n url-rewrite
+kubectl get certificate -n url-rewrite
+kubectl get secret cert-manager-tls -n url-rewrite
+```
 
 ## Test URL Rewrite
 
-Get your ALB address:
+
+Get Gateway address:
 
 ```bash
-ALB=$(kubectl get gateway paytam-gateway \
+GW=$(kubectl get gateway paytam-gateway -n url-rewrite \
   -o jsonpath='{.status.addresses[0].value}')
-echo "ALB: ${ALB}"
+echo "Gateway: ${GW}"
 ```
 
-### Test 1 — /app rewrites to /
+Test each rewrite rule:
 
 ```bash
-curl -H "Host: paytam.yourdomain.com" http://${ALB}/app
+# Rule 1: /app → pod gets /
+curl -H "Host: tagent.cfd" http://${GW}/app
+
+# Rule 2: /paytam → pod gets /
+curl -H "Host: tagent.cfd" http://${GW}/paytam
+
+# Rule 3: /api/v1/users → pod gets /api/users
+curl -H "Host: tagent.cfd" http://${GW}/api/v1/users
+
+# Rule 4: /health → pod gets /health (no rewrite)
+curl -H "Host: tagent.cfd" http://${GW}/health
 ```
 
-Your pod receives `/` — the `/app` prefix is stripped.
-
-### Test 2 — /paytam rewrites to /
+Test with real domain (after DNS + cert):
 
 ```bash
-curl -H "Host: paytam.yourdomain.com" http://${ALB}/paytam
+curl https://tagent.cfd/app
+curl https://tagent.cfd/paytam
+curl https://tagent.cfd/api/v1/users
+curl https://tagent.cfd/health
 ```
 
-Your pod receives `/`.
-
-### Test 3 — /api/v1 rewrites to /api
+Verify pod receives rewritten URL — check pod logs:
 
 ```bash
-curl -H "Host: paytam.yourdomain.com" http://${ALB}/api/v1/users
+kubectl logs deployment/paytam -n url-rewrite -f
 ```
 
-Your pod receives `/api/users`.
-
-### Test 4 — default pass through
-
-```bash
-curl -H "Host: paytam.yourdomain.com" http://${ALB}/health
-```
-
-Your pod receives `/health` — no rewrite.
-
-### Test from browser (after Route53 DNS record is created)
-
-```
-https://paytam.yourdomain.com/app      → pod gets /
-https://paytam.yourdomain.com/paytam   → pod gets /
-https://paytam.yourdomain.com/api/v1   → pod gets /api
-https://paytam.yourdomain.com/health   → pod gets /health
-```
-
----
-
-## Verify Rewrite Is Working
-
-To confirm the pod is actually receiving the rewritten URL, check pod logs:
-
-```bash
-kubectl logs deployment/paytam -f
-```
-
-When you hit `/app` — the log should show the request came in as `/` not `/app`.
-
----
-
-## How URL Rewrite Works In The YAML
-
-```yaml
-filters:
-- type: URLRewrite
-  urlRewrite:
-    path:
-      type: ReplacePrefixMatch
-      replacePrefixMatch: /
-```
-
-- `type: URLRewrite` — tells Gateway to rewrite the URL
-- `ReplacePrefixMatch` — replaces the matched prefix with a new value
-- `replacePrefixMatch: /` — replaces `/app` with `/`
-
-So `/app/home` becomes `/home` and `/app` becomes `/`.
+When you hit `/app` — log shows `/` not `/app`.
 
 ---
 
 ## Clean Up
 
 ```bash
+kubectl delete -f certificate.yaml
 kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
 kubectl delete -f svc.yaml
@@ -248,24 +225,22 @@ kubectl delete -f namespace.yaml
 
 ## Troubleshooting
 
-### Rewrite not working — pod still receives original path
-
-Check HTTPRoute is attached to Gateway:
+### Rewrite not working
 
 ```bash
-kubectl describe httproute paytam-url-rewrite
+kubectl describe httproute paytam-url-rewrite -n url-rewrite
 ```
 
-Look for `Accepted: True` in the status.
+Look for `Accepted: True` in status.
 
 ### 404 after rewrite
 
 The rewritten path does not exist in your app.
-Example: you rewrote `/app` to `/` but your app does not have a route at `/`.
+Example: rewrote `/app` to `/` but app has no route at `/`.
 Check your app routes match the rewritten paths.
 
-### Rules not matching in correct order
+### Rules not matching
 
-Gateway API processes rules in order from top to bottom.
+Gateway API processes rules top to bottom.
 More specific paths must come before less specific ones.
 `/api/v1` must be before `/api` which must be before `/`.

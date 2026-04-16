@@ -1,50 +1,54 @@
-# Paytam App Gateway API Deployment Guide
+# Section 2: Paytam App: Basic Gateway Routing
 
-App image: `yaswanth111/paytam:latest`
-Routing: AWS ALB via Kubernetes Gateway API
+App: `yaswanth111/paytam:latest`
+Namespace: `paytam`
+Domain: `tagent.cfd`
+Controller: Envoy Gateway (`gateway-api`)
+TLS: cert-manager + Let's Encrypt
 
 ---
 
-## 1. paytam-app — Basic Gateway Routing
+## Architecture
+
 
 One app, one domain, straight through routing.
 
 ```
                         ┌─────────────────────────────────────────┐
-                        │           INTERNET                       │
+                        │ INTERNET [User → https://tagent.cfd]    │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         Route53 DNS                      │
-                        │   paytam.yourdomain.com → ALB            │
+                        │    Envoy Proxy pods (gateway-system namespace) │
+                        │              │
+                        └──────────────────┬──────────────────────┘
+
+                                           │
+                                           ▼
+                        ┌─────────────────────────────────────────┐
+                        │   GatewayClass: gateway-api             │
+                        │                                         │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         AWS ALB                          │
-                        │   Port 80  → redirect to 443            │
-                        │   Port 443 → HTTPS with ACM cert        │
+                        │ Gateway: paytam-gateway (namespace: paytam)│
+                        │   Port 80  → redirect to 443               │
+                        │   Port 443 → cert-manager-tls secret       │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         Gateway Resource                 │
-                        │   gatewayClassName: alb                  │
-                        │   namespace: paytam                      │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                                           ▼
-                        ┌─────────────────────────────────────────┐
-                        │         HTTPRoute                        │
-                        │   host: paytam.yourdomain.com           │
+                        │         HTTPRoute                       │
+                        │   host: tagent.cfd                      │
                         │   path: /  →  paytam-svc:80             │
                         └──────────────────┬──────────────────────┘
                                            │
                                            ▼
                         ┌─────────────────────────────────────────┐
-                        │         ClusterIP Service                │
-                        │         paytam-svc:80                    │
+                        │         ClusterIP Service               │
+                        │         paytam-svc:80                   │
                         └──────────┬────────────┬─────────────────┘
                                    │            │
                                    ▼            ▼
@@ -56,28 +60,32 @@ One app, one domain, straight through routing.
 Concept: Single app exposed via Gateway API with HTTPS.
          User hits domain → ALB → Gateway → HTTPRoute → Service → Pods.
 ```
+
 ---
 
 ## Files In This Folder
 
-| File | What It Does |
+| File | Purpose |
 |---|---|
-| `svc_account.yaml` | Creates a ServiceAccount for the app / A Service Account is like an ID card given to a Pod so it can talk to Kubernetes securely|
-| `deploy.yaml` | Deploys paytam app with 2 pods |
-| `svc.yaml` | ClusterIP service — connects Gateway to pods |
-| `gateway_class.yaml` | Tells Kubernetes to use AWS ALB as the Gateway controller |
-| `gateway.yaml` | Creates the actual AWS ALB with HTTPS |
-| `httproute.yaml` | Defines routing rules — which domain goes to which service |
+| `namespace.yaml` | Creates `paytam` namespace |
+| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app / A Service Account is like an ID card given to a Pod so it can talk to Kubernetes securely |
+| `deploy.yaml` | Deploys `yaswanth111/paytam:latest` with 2 replicas |
+| `svc.yaml` | ClusterIP service `paytam-svc` on port 80 |
+| `gateway_class.yaml` | GatewayClass `gateway-api` using Envoy controller |
+| `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 listeners |
+| `httproute.yaml` | Routes `tagent.cfd /` → `paytam-svc:80` |
+| `certificate.yaml` | cert-manager Certificate for `tagent.cfd` |
 | `README.md` | This guide |
 
 ---
-When you create a Service Account:
-
+### When you create a Service Account:
 1.Kubernetes creates:
+
 - A token
 - A secret
-  
+
 2.That token is:
+
 - Mounted inside the Pod automatically
 
 3.Pod uses this token to:
@@ -87,73 +95,42 @@ When you create a Service Account:
 ```bash
 Pod → uses Service Account token → talks to API Server → gets response
 ```
-
-
-## Changes You Must Make Before Deploying
-
-Open `gateway.yaml` and replace line with certificate ARN:
-
-```yaml
-# BEFORE
-alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:YOUR_ACCOUNT_ID:certificate/YOUR_CERTIFICATE_ID
-
-# AFTER — paste your real ACM certificate ARN
-alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:713939171080:certificate/abc12345-xxxx-xxxx
-```
-
-Open `httproute.yaml` and replace the domain:
-
-```yaml
-# BEFORE
-- YOUR_SUBDOMAIN.YOUR_DOMAIN.com
-
-# AFTER — your real domain
-- paytam.aluru.com
-```
-
-That is all. No other changes needed.
-
----
-
 ## Pre-Requirements
 
-Before deploying, make sure these are done:
-
-- [ ] EKS cluster `eksprod` is running
-- [ ] Connected to cluster — `kubectl get nodes` shows Ready nodes
-- [ ] Gateway API CRDs installed (see install-gateway-api folder)
-- [ ] AWS Load Balancer Controller installed with `enableGatewayAPI=true`
-- [ ] ACM certificate is in `Issued` state
-- [ ] Domain is in Route53
+- [ ] EKS cluster running — `kubectl get nodes` shows Ready nodes
+- [ ] Envoy Gateway installed — `0.install-gateway-api/README.md`
+- [ ] GatewayClass `gateway-api` ACCEPTED = True
+- [ ] cert-manager installed — `1.cert-manager/README.md`
+- [ ] ClusterIssuer `letsencrypt-prod` READY = True
 
 ---
 
-## Step 1 — Connect To Your Cluster
+## Change Before Deploying
+
+Open `httproute.yaml` and replace the domain placeholder:
+
+```yaml
+# BEFORE
+hostnames:
+  - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+
+# AFTER
+hostnames:
+  - tagent.cfd
+```
+
+---
+
+## Step 1 : Connect To Cluster
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name eksprod
-```
-
-Verify nodes are ready:
-
-```bash
 kubectl get nodes
 ```
 
-Expected:
+---
 
-```
-NAME                         STATUS   ROLES    AGE
-ip-10-0-3-177.ec2.internal   Ready    <none>   10m
-ip-10-0-3-55.ec2.internal    Ready    <none>   10m
-ip-10-0-4-233.ec2.internal   Ready    <none>   10m
-```
---- 
-
-
-## Step 2 — Deploy Everything
-
-Apply in this exact order:
+## Step 2 : Deploy App With HTTP Only
 
 ```bash
 # 1. Create paytam namespace
@@ -162,35 +139,31 @@ kubectl get ns
 
 # 2. Create ServiceAccount
 kubectl apply -f svc_account.yaml
-
+kubectl get sa -n paytam
 
 # 3. Deploy the app
 kubectl apply -f deploy.yaml
+kubectl get pods -n paytam
 
 # 4. Create the service
 kubectl apply -f svc.yaml
+kubectl get svc -n paytam
 
 # 5. Create GatewayClass
 kubectl apply -f gateway_class.yaml
+kubectl get gatewayclass
 
 # 6. Create Gateway (this triggers ALB creation in AWS)
 kubectl apply -f gateway.yaml
+kubectl get gateway -n paytam
 
 # 7. Create HTTPRoute (this attaches routing rules to the Gateway)
 kubectl apply -f httproute.yaml
+kubectl get httproute -n paytam
+
 ```
 
----
-
-## Step 5 — Verify All Resources Are Created
-
-Check ServiceAccount:
-
-```bash
-kubectl get sa -n paytam
-```
-
-Check pods:
+Verify pods are running:
 
 ```bash
 kubectl get pods -n paytam
@@ -204,249 +177,127 @@ paytam-xxxx               1/1     Running   0
 paytam-yyyy               1/1     Running   0
 ```
 
-Check service:
+---
+
+## Step 3 — Get Gateway ADDRESS
 
 ```bash
+kubectl get gateway -n paytam -w
+```
+
+Wait until ADDRESS appears (1-3 minutes):
+
+```
+NAME             CLASS         ADDRESS                    PROGRAMMED
+paytam-gateway   gateway-api   xxx.elb.amazonaws.com      True
+```
+
+Copy the ADDRESS value.
+
+---
+
+## Step 4 — Point DNS To Gateway
+
+Go to Route53 or your domain registrar:
+
+```
+Create record:
+  Name:  tagent.cfd
+  Type:  A (or CNAME)
+  Value: xxx.elb.amazonaws.com
+```
+
+Verify DNS propagated:
+
+```bash
+nslookup tagent.cfd
+```
+
+---
+
+## Step 5 — Apply Certificate
+
+```bash
+kubectl apply -f certificate.yaml
+```
+
+Watch certificate being issued:
+
+```bash
+kubectl get certificate -n paytam -w
+```
+
+Wait for READY = True (1-5 minutes):
+
+```
+NAME               READY   SECRET             AGE
+cert-manager-tls   True    cert-manager-tls   3m
+```
+
+---
+
+## Step 6 — Apply Gateway With HTTPS
+
+The `gateway.yaml` already has both HTTP and HTTPS listeners.
+Reapply it now that the certificate secret exists:
+
+```bash
+kubectl apply -f gateway.yaml
+```
+
+---
+
+## Step 7 — Verify Everything
+
+```bash
+kubectl get pods -n paytam
 kubectl get svc -n paytam
-```
-
-Expected:
-
-```
-NAME         TYPE        CLUSTER-IP     PORT(S)
-paytam-svc   ClusterIP   10.100.x.x     80/TCP
-```
-
-Check GatewayClass:
-
-```bash
 kubectl get gatewayclass
-```
-
-Expected:
-
-```
-NAME   CONTROLLER                  ACCEPTED
-alb    ingress.k8s.aws/alb         True
-```
-
-Check Gateway — wait 2-3 minutes for ALB to be created:
-
-```bash
 kubectl get gateway -n paytam
-```
-
-Expected:
-
-```
-NAME             CLASS   ADDRESS                                          PROGRAMMED
-paytam-gateway   alb     k8s-default-paytamga-xxxx.elb.amazonaws.com     True
-```
-
-`PROGRAMMED = True` means ALB is created in AWS successfully.
-
-Check HTTPRoute:
-
-```bash
 kubectl get httproute -n paytam
+kubectl get certificate -n paytam
+kubectl get secret cert-manager-tls -n paytam
 ```
 
-Expected:
-
-```
-NAME            HOSTNAMES                    AGE
-paytam-route    ["paytam.aluru.com"]         2m
-```
+All should show Ready/Running/True.
 
 ---
 
-## Step 6 — Create Route53 DNS Record
+## Step 8 — Test
 
-Get your ALB address:
-
-```bash
-ALB_ADDRESS=$(kubectl get gateway paytam-gateway \
-  -o jsonpath='{.status.addresses[0].value}')
-
-echo "ALB Address: ${ALB_ADDRESS}"
-```
-
-Go to:
-
-```
-AWS Console → Route53 → Hosted Zones → your domain → Create Record
-```
-
-Fill in:
-
-| Field | Value |
-|---|---|
-| Record name | `paytam` (just the subdomain part) |
-| Record type | `A` |
-| Alias | Toggle ON |
-| Route traffic to | Alias to Application and Classic Load Balancer |
-| Region | US East (N. Virginia) |
-| Load balancer | select your ALB from dropdown |
-
-Click Create records. DNS propagates in 1-5 minutes.
-
----
-
-## Step 7 — Test Outside The Cluster (From Browser or Your Machine)
-
-Open browser and go to:
-
-```
-https://paytam.yourdomain.com
-```
-
-Expected: Your paytam application loads with a padlock (HTTPS).
-
-Test HTTP redirect — open:
-
-```
-http://paytam.yourdomain.com
-```
-
-Expected: Automatically redirects to `https://paytam.yourdomain.com`.
-
-Test with curl from your local machine:
+Test HTTP (redirects to HTTPS):
 
 ```bash
-curl -v https://paytam.yourdomain.com
+curl -L http://tagent.cfd
 ```
 
-Expected: HTTP 200 response with your app HTML.
-
----
-
-## Step 8 — Test Inside The Cluster
-
-Run a temporary pod inside the cluster and test:
+Test HTTPS:
 
 ```bash
-# Test via service directly (bypasses Gateway — pure internal test)
-kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
-  curl http://paytam-svc
-
-# Test via ALB with Host header from inside cluster
-ALB_ADDRESS=$(kubectl get gateway paytam-gateway \
-  -o jsonpath='{.status.addresses[0].value}')
-
-kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
-  curl -H "Host: paytam.yourdomain.com" http://${ALB_ADDRESS}
+curl https://tagent.cfd
 ```
 
-Expected: Your paytam app HTML response.
+Open in browser:
 
-Check service endpoints — confirms pods are registered:
+```
+https://tagent.cfd
+```
+
+Expected: paytam app with padlock icon.
+
+Test from inside cluster:
 
 ```bash
-kubectl get endpoints paytam-svc
-```
-
-Expected — shows pod IPs:
-
-```
-NAME         ENDPOINTS                     AGE
-paytam-svc   10.0.3.x:80,10.0.4.x:80      5m
-```
-
----
-
-## Step 9 — Verify In AWS Console
-
-Check ALB was created:
-
-```
-AWS Console → EC2 → Load Balancers
-```
-
-Find ALB named `k8s-default-paytamga-xxxx`. It should be `Active`.
-
-Check target group health:
-
-```
-AWS Console → EC2 → Target Groups → select your TG → Targets tab
-```
-
-All targets should show `healthy`. If any show `unhealthy`, check your pods are running.
-
----
-
-## Full Verification Checklist
-
-Run all these commands and confirm each one:
-
-```bash
-# 1. Nodes ready
-kubectl get nodes
-
-# 2. Pods running
-kubectl get pods
-
-# 3. Service exists
-kubectl get svc paytam-svc
-
-# 4. Endpoints registered
-kubectl get endpoints paytam-svc
-
-# 5. GatewayClass accepted
-kubectl get gatewayclass
-
-# 6. Gateway programmed with ALB address
-kubectl get gateway paytam-gateway
-
-# 7. HTTPRoute attached
-kubectl get httproute paytam-route
-
-# 8. Controller running
-kubectl get pods -n kube-system | grep aws-load-balancer-controller
-```
-
-All 8 checks passing = everything is working correctly.
-
----
-
-## Useful Debug Commands
-
-Describe Gateway — shows events and errors:
-
-```bash
-kubectl describe gateway paytam-gateway
-```
-
-Describe HTTPRoute:
-
-```bash
-kubectl describe httproute paytam-route
-```
-
-ALB controller logs — most useful for debugging:
-
-```bash
-kubectl logs -n kube-system deployment/aws-load-balancer-controller --tail=50
-```
-
-Check all events sorted by time:
-
-```bash
-kubectl get events --sort-by='.lastTimestamp'
-```
-
-Check pod logs:
-
-```bash
-kubectl logs deployment/paytam
+kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
+  -n paytam -- curl http://paytam-svc
 ```
 
 ---
 
 ## Clean Up
 
-Delete in reverse order:
-
 ```bash
+kubectl delete -f certificate.yaml
 kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
 kubectl delete -f gateway_class.yaml
@@ -456,63 +307,27 @@ kubectl delete -f svc_account.yaml
 kubectl delete -f namespace.yaml
 ```
 
-Verify ALB is deleted in AWS:
-
-```
-AWS Console → EC2 → Load Balancers
-```
-
-The ALB should be gone.
-
 ---
 
 ## Troubleshooting
 
-### Gateway PROGRAMMED = False or Unknown
-
-Check controller logs:
+### Gateway ADDRESS empty
 
 ```bash
-kubectl logs -n kube-system deployment/aws-load-balancer-controller --tail=100
+kubectl get pods -n gateway-system
+kubectl logs -n gateway-system deployment/envoy-gateway --tail=20
 ```
 
-Common causes:
-- `enableGatewayAPI=true` was not set when installing the controller
-- GatewayClass not created
-- ACM certificate ARN is wrong or certificate is not Issued
-
-### HTTPRoute not attaching to Gateway
-
-Check the `parentRefs` in `httproute.yaml` matches the Gateway name exactly:
-
-```yaml
-parentRefs:
-- name: paytam-gateway   # must match gateway.yaml metadata.name
-  namespace: default
-```
-
-### 503 from browser
-
-ALB is up but no healthy targets. Check:
+### Certificate READY = False
 
 ```bash
-kubectl get pods
-kubectl get endpoints paytam-svc
+kubectl describe certificate cert-manager-tls -n paytam
+kubectl logs -n cert-manager deployment/cert-manager --tail=30
 ```
 
-If endpoints are empty — pods are not matching the service selector.
-
-### DNS not resolving
-
-Check Route53 record was created. Test DNS:
+### 503 error
 
 ```bash
-nslookup paytam.yourdomain.com
+kubectl get pods -n paytam
+kubectl get endpoints paytam-svc -n paytam
 ```
-
-Should return the ALB IP address.
-
-### Certificate error in browser
-
-ACM certificate does not cover your domain. Make sure you requested a wildcard:
-`*.yourdomain.com`
