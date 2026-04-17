@@ -94,6 +94,7 @@ This is useful when:
 | File | Purpose |
 |---|---|
 | `namespace.yaml` | Creates `url-rewrite` namespace |
+| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app |
 | `deploy.yaml` | Deploys `yaswanth111/paytam:latest` with 2 replicas |
 | `svc.yaml` | ClusterIP service `paytam-svc` on port 80 |
 | `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 |
@@ -131,6 +132,7 @@ hostnames:
 ```bash
 # Step 1 — create namespace and app
 kubectl apply -f namespace.yaml
+kubectl apply -f svc_account.yaml
 kubectl apply -f deploy.yaml
 kubectl apply -f svc.yaml
 
@@ -157,6 +159,7 @@ kubectl apply -f gateway.yaml
 
 ```bash
 kubectl get pods -n url-rewrite
+kubectl get sa -n url-rewrite
 kubectl get svc -n url-rewrite
 kubectl get gateway -n url-rewrite
 kubectl get httproute -n url-rewrite
@@ -218,6 +221,7 @@ kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
 kubectl delete -f svc.yaml
 kubectl delete -f deploy.yaml
+kubectl delete -f svc_account.yaml
 kubectl delete -f namespace.yaml
 ```
 
