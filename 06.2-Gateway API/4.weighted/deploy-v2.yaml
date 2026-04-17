@@ -21,7 +21,7 @@ spec:
       serviceAccountName: paytam-sa
       containers:
         - name: paytam
-          image: yaswanth111/swiggy:latest
+          image: yaswanth111/jio-hotstar:latest
           ports:
             - containerPort: 3000
           resources:

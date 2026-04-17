@@ -75,7 +75,7 @@ Two backends, no weight specified — Kubernetes splits equally.
                     ▼                  ▼   ▼                      ▼
               ┌──────────┐      ┌──────────┐              ┌──────────┐
               │  Pod v1  │      │  Pod v1  │              │  Pod v2  │
-              │  paytam  │      │  paytam  │              │  swiggy  │
+              │  paytam  │      │  paytam  │              │  jio  │
               └──────────┘      └──────────┘              └──────────┘
 
 Concept: When weight is NOT mentioned, all backends get equal share.

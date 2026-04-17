@@ -54,7 +54,7 @@ HTTPRoute (weight: 90 / weight: 10)
 paytam-svc-v1       paytam-svc-v2
 (stable)            (canary)
     |                    |
-paytam pods         swiggy pods
+paytam pods         jiohoster pods
 ```
 
 ---
