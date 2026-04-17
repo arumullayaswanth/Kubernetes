@@ -217,6 +217,9 @@ Refresh multiple times — alternates between paytam and swiggy.
 
 ## Clean Up
 
+> Note: Do NOT delete `gateway_class.yaml` here — it is cluster-wide and shared by all apps.
+> Only delete it from `0.install-gateway-api` when removing Gateway API from the entire cluster.
+
 ```bash
 kubectl delete -f certificate.yaml
 kubectl delete -f httproute.yaml
