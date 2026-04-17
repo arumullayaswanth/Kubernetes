@@ -4,13 +4,9 @@ metadata:
   name: letsencrypt-prod
 spec:
   acme:
-    # Let's Encrypt production server — issues real trusted certificates
     server: https://acme-v02.api.letsencrypt.org/directory
     # ---------------------------------------------------------------
-    # REPLACE with your real email address
     # Let's Encrypt sends certificate expiry warnings to this email
-    # The email yaswanth.arumulla@gmail.com is only used for:
-    # Expiry warning emails from Let's Encrypt
     # ---------------------------------------------------------------
     email: yaswanth.arumulla@gmail.com
     privateKeySecretRef:
@@ -19,6 +15,28 @@ spec:
       - http01:
           gatewayHTTPRoute:
             parentRefs:
-              - name: paytam-gateway
-                namespace: paytam
+              - group: gateway.networking.k8s.io
                 kind: Gateway
+                name: paytam-gateway
+                namespace: paytam
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: paytam-gateway
+                namespace: url-rewrite
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: paytam-gateway
+                namespace: weighted
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: paytam-gateway
+                namespace: traffic-splitting
