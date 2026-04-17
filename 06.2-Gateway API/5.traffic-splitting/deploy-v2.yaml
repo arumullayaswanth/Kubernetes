@@ -18,6 +18,7 @@ spec:
         app: paytam
         version: v2
     spec:
+      serviceAccountName: paytam-sa
       containers:
         - name: paytam
           image: yaswanth111/swiggy:latest
