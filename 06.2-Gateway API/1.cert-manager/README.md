@@ -166,27 +166,3 @@ kubectl delete -f cluster-issuer.yaml
 kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
 ```
 
----
-
-## Troubleshooting
-
-### Certificate READY = False
-
-```bash
-kubectl describe certificate cert-manager-tls -n paytam
-kubectl logs -n cert-manager deployment/cert-manager --tail=30
-```
-
-### HTTP challenge failing
-
-Let's Encrypt needs to reach `tagent.cfd` on port 80.
-Make sure:
-- Gateway is running and has an ADDRESS
-- DNS is pointing to the Gateway ADDRESS
-- Port 80 is open on your NLB
-
-### ClusterIssuer READY = False
-
-```bash
-kubectl describe clusterissuer letsencrypt-prod
-```
