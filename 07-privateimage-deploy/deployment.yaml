@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: private-app
+  namespace: private-app
+  labels:
+    app: private-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: private-app
+  template:
+    metadata:
+      labels:
+        app: private-app
+    spec:
+      serviceAccountName: private-app-sa
+      containers:
+        - name: private-app
+          # ---------------------------------------------------------------
+          # REPLACE with your ECR image URL after pushing
+          # Format: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/REPO_NAME:TAG
+          # Example:
+          #   713939171080.dkr.ecr.us-east-1.amazonaws.com/myapp:latest
+          # ---------------------------------------------------------------
+          image: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/YOUR_REPO_NAME:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
