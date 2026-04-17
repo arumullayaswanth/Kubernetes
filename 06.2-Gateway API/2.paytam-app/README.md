@@ -162,60 +162,8 @@ kubectl apply -f httproute.yaml
 kubectl get httproute -n paytam
 
 ```
-
-Verify pods are running:
-
-```bash
-kubectl get pods -n paytam
-```
-
-Expected:
-
-```
-NAME                      READY   STATUS    RESTARTS
-paytam-xxxx               1/1     Running   0
-paytam-yyyy               1/1     Running   0
-```
-
 ---
-
-## Step 3 — Get Gateway ADDRESS
-
-```bash
-kubectl get gateway -n paytam -w
-```
-
-Wait until ADDRESS appears (1-3 minutes):
-
-```
-NAME             CLASS         ADDRESS                    PROGRAMMED
-paytam-gateway   gateway-api   xxx.elb.amazonaws.com      True
-```
-
-Copy the ADDRESS value.
-
----
-
-## Step 4 — Point DNS To Gateway
-
-Go to Route53 or your domain registrar:
-
-```
-Create record:
-  Name:  tagent.cfd
-  Type:  A (or CNAME)
-  Value: xxx.elb.amazonaws.com
-```
-
-Verify DNS propagated:
-
-```bash
-nslookup tagent.cfd
-```
-
----
-
-## Step 5 — Apply Certificate
+## Step 3 — Apply Certificate
 
 ```bash
 kubectl apply -f certificate.yaml
@@ -236,7 +184,7 @@ cert-manager-tls   True    cert-manager-tls   3m
 
 ---
 
-## Step 6 — Apply Gateway With HTTPS
+## Step 4 — Apply Gateway With HTTPS
 
 The `gateway.yaml` already has both HTTP and HTTPS listeners.
 Reapply it now that the certificate secret exists:
@@ -247,7 +195,28 @@ kubectl apply -f gateway.yaml
 
 ---
 
-## Step 7 — Verify Everything
+## Step 5 — Point DNS To Gateway
+
+Go to Route53 or your domain registrar:
+
+```
+Create record:
+  Name:  tagent.cfd
+  Type:  A (or CNAME)
+  Value: xxx.elb.amazonaws.com
+```
+
+Verify DNS propagated:
+
+```bash
+nslookup tagent.cfd
+```
+
+---
+
+
+
+## Step 6 — Verify Everything
 
 ```bash
 kubectl get pods -n paytam
@@ -263,7 +232,7 @@ All should show Ready/Running/True.
 
 ---
 
-## Step 8 — Test
+## Step 6 — Test
 
 Test HTTP (redirects to HTTPS):
 
@@ -307,27 +276,3 @@ kubectl delete -f svc_account.yaml
 kubectl delete -f namespace.yaml
 ```
 
----
-
-## Troubleshooting
-
-### Gateway ADDRESS empty
-
-```bash
-kubectl get pods -n gateway-system
-kubectl logs -n gateway-system deployment/envoy-gateway --tail=20
-```
-
-### Certificate READY = False
-
-```bash
-kubectl describe certificate cert-manager-tls -n paytam
-kubectl logs -n cert-manager deployment/cert-manager --tail=30
-```
-
-### 503 error
-
-```bash
-kubectl get pods -n paytam
-kubectl get endpoints paytam-svc -n paytam
-```
