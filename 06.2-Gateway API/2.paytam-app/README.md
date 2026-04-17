@@ -68,10 +68,9 @@ Concept: Single app exposed via Gateway API with HTTPS.
 | File | Purpose |
 |---|---|
 | `namespace.yaml` | Creates `paytam` namespace |
-| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app / A Service Account is like an ID card given to a Pod so it can talk to Kubernetes securely |
+| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app |
 | `deploy.yaml` | Deploys `yaswanth111/paytam:latest` with 2 replicas |
 | `svc.yaml` | ClusterIP service `paytam-svc` on port 80 |
-| `gateway_class.yaml` | GatewayClass `gateway-api` using Envoy controller |
 | `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 listeners |
 | `httproute.yaml` | Routes `tagent.cfd /` → `paytam-svc:80` |
 | `certificate.yaml` | cert-manager Certificate for `tagent.cfd` |
@@ -149,15 +148,12 @@ kubectl get pods -n paytam
 kubectl apply -f svc.yaml
 kubectl get svc -n paytam
 
-# 5. Create GatewayClass
-kubectl apply -f gateway_class.yaml
-kubectl get gatewayclass
 
-# 6. Create Gateway (this triggers ALB creation in AWS)
+# 5. Create Gateway (this triggers ALB creation in AWS)
 kubectl apply -f gateway.yaml
 kubectl get gateway -n paytam
 
-# 7. Create HTTPRoute (this attaches routing rules to the Gateway)
+# 6. Create HTTPRoute (this attaches routing rules to the Gateway)
 kubectl apply -f httproute.yaml
 kubectl get httproute -n paytam
 
@@ -265,11 +261,14 @@ kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \
 
 ## Clean Up
 
+> Note: `gateway_class.yaml` is in `0.install-gateway-api` folder — not here.
+> It is cluster-wide and shared by all apps. Do NOT delete it when cleaning up individual apps.
+> Only delete it from `0.install-gateway-api` when removing Gateway API from the entire cluster.
+
 ```bash
 kubectl delete -f certificate.yaml
 kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
-kubectl delete -f gateway_class.yaml
 kubectl delete -f svc.yaml
 kubectl delete -f deploy.yaml
 kubectl delete -f svc_account.yaml
