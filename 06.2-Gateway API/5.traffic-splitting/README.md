@@ -1,83 +1,104 @@
-# Traffic Splitting — Gateway API
+# Section 5 — Traffic Splitting: Canary Deployment (90% / 10%)
 
+Apps: `yaswanth111/paytam:latest` (v1 stable) + `yaswanth111/swiggy:latest` (v2 canary)
 Namespace: `traffic-splitting`
-
-Traffic splitting sends a percentage of requests to different versions of your app.
-This is the foundation of canary deployments.
+Domain: `tagent.cfd`
+Controller: Envoy Gateway (`gateway-api`)
+TLS: cert-manager + Let's Encrypt
 
 ---
 
-## 3. traffic-splitting — Canary Deployment (90% / 10%)
+## Concept
 
-Gradually roll out a new version to a small percentage of users.
+Send 90% of traffic to stable v1 and 10% to new canary v2.
+If v2 has issues — set weight to 0 for instant rollback.
 
-```
-                        ┌─────────────────────────────────────────┐
-                        │           INTERNET                       │
-                        │         100 users visit                  │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                                           ▼
-                        ┌─────────────────────────────────────────┐
-                        │            Envoy Gateway                │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                                           ▼
-                        ┌─────────────────────────────────────────┐
-                        │         HTTPRoute — Traffic Split        │
-                        │                                          │
-                        │         weight: 90    weight: 10         │
-                        └──────────┬────────────────┬─────────────┘
-                                   │                │
-                          90 users │                │ 10 users
-                                   │                │
-                                   ▼                ▼
-                    ┌──────────────────┐  ┌──────────────────────┐
-                    │  paytam-svc-v1   │  │   paytam-svc-v2      │
-                    │  (stable)        │  │   (canary)           │
-                    └────────┬─────────┘  └──────────┬───────────┘
-                             │                        │
-                    ┌────────┴─────────┐   ┌──────────┴──────────┐
-                    │                  │   │                      │
-                    ▼                  ▼   ▼                      ▼
-              ┌──────────┐      ┌──────────┐              ┌──────────┐
-              │  Pod v1  │      │  Pod v1  │              │  Pod v2  │
-              │  paytam  │      │  paytam  │              │  swiggy  │
-              └──────────┘      └──────────┘              └──────────┘
-
-Concept: New version (v2/swiggy) gets only 10% of traffic.
-         If v2 has no issues → increase weight gradually.
-         If v2 has issues   → set weight to 0 → instant rollback.
-         No downtime. No redeployment needed to change split.
+```yaml
+backendRefs:
+- name: paytam-svc-v1
+  port: 80
+  weight: 90    # 90% → stable paytam
+- name: paytam-svc-v2
+  port: 80
+  weight: 10    # 10% → canary swiggy
 ```
 
 ---
 
-## What Is Traffic Splitting
+## Gradual Rollout Plan
 
-Without traffic splitting — all users get the same version:
+| Week | v1 (paytam) | v2 (swiggy) | Action |
+|---|---|---|---|
+| Week 1 | 90% | 10% | Deploy canary — test with small traffic |
+| Week 2 | 70% | 30% | Increase if no issues |
+| Week 3 | 50% | 50% | Half traffic on v2 |
+| Week 4 | 0% | 100% | Full rollout complete |
 
-```
-100% users → v1
-```
+If issues found at any week → set v2 weight to 0 → instant rollback → no downtime.
 
-With traffic splitting — you gradually roll out a new version:
+---
 
-```
-90% users → v1 (stable)
-10% users → v2 (canary — new version being tested)
-```
-
-If v2 has no issues, you increase its weight:
+## Architecture
 
 ```
-Week 1:  90% v1 / 10% v2
-Week 2:  70% v1 / 30% v2
-Week 3:  50% v1 / 50% v2
-Week 4:   0% v1 / 100% v2  → full rollout complete
+100 users → tagent.cfd
+    |
+    ▼
+Envoy Gateway
+    |
+    ▼
+HTTPRoute (weight: 90 / weight: 10)
+    |                    |
+  90 users             10 users
+    |                    |
+paytam-svc-v1       paytam-svc-v2
+(stable)            (canary)
+    |                    |
+paytam pods         swiggy pods
 ```
 
-If v2 has issues, you set its weight back to 0 — instant rollback.
+---
+
+## Files In This Folder
+
+| File | Purpose |
+|---|---|
+| `namespace.yaml` | Creates `traffic-splitting` namespace |
+| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app |
+| `deploy-v1.yaml` | v1 — `yaswanth111/paytam:latest` (2 replicas, stable) |
+| `deploy-v2.yaml` | v2 — `yaswanth111/swiggy:latest` (1 replica, canary) |
+| `svc-v1.yaml` | ClusterIP service for v1 pods |
+| `svc-v2.yaml` | ClusterIP service for v2 pods |
+| `gateway.yaml` | Gateway with HTTP 80 + HTTPS 443 |
+| `httproute.yaml` | 90% v1 / 10% v2 traffic split |
+| `certificate.yaml` | cert-manager Certificate for `tagent.cfd` |
+| `README.md` | This guide |
+
+---
+
+## Pre-Requirements
+
+- [ ] Envoy Gateway installed — `0.install-gateway-api/README.md`
+- [ ] GatewayClass `gateway-api` ACCEPTED = True
+- [ ] cert-manager installed — `1.cert-manager/README.md`
+- [ ] ClusterIssuer `letsencrypt-prod` READY = True
+- [ ] DNS pointing to Gateway ADDRESS
+
+---
+
+## Change Before Deploying
+
+Open `httproute.yaml` and replace the domain placeholder:
+
+```yaml
+# BEFORE
+hostnames:
+  - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+
+# AFTER
+hostnames:
+  - tagent.cfd
+```
 
 ---
 
@@ -86,6 +107,7 @@ If v2 has issues, you set its weight back to 0 — instant rollback.
 ```bash
 # Step 1 — create namespace and both versions
 kubectl apply -f namespace.yaml
+kubectl apply -f svc_account.yaml
 kubectl apply -f deploy-v1.yaml
 kubectl apply -f deploy-v2.yaml
 kubectl apply -f svc-v1.yaml
@@ -114,6 +136,7 @@ kubectl apply -f gateway.yaml
 
 ```bash
 kubectl get pods -n traffic-splitting
+kubectl get sa -n traffic-splitting
 kubectl get svc -n traffic-splitting
 kubectl get gateway -n traffic-splitting
 kubectl get httproute -n traffic-splitting
@@ -159,46 +182,17 @@ Test with real domain:
 curl https://tagent.cfd
 ```
 
-Refresh multiple times — mostly paytam, occasionally swiggy.
-
 ---
 
 ## Change Traffic Split
 
-Edit `httproute.yaml` and change weights:
-
-**Increase canary to 30%:**
-
-```yaml
-- name: paytam-svc-v1
-  weight: 70
-- name: paytam-svc-v2
-  weight: 30
-```
-
-**Full rollout to v2:**
-
-```yaml
-- name: paytam-svc-v1
-  weight: 0
-- name: paytam-svc-v2
-  weight: 100
-```
-
-**Instant rollback to v1:**
-
-```yaml
-- name: paytam-svc-v1
-  weight: 100
-- name: paytam-svc-v2
-  weight: 0
-```
-
-Apply immediately — no downtime:
+Edit `httproute.yaml` and change weights, then apply:
 
 ```bash
 kubectl apply -f httproute.yaml
 ```
+
+Takes effect immediately — no downtime.
 
 ---
 
@@ -212,6 +206,7 @@ kubectl delete -f svc-v1.yaml
 kubectl delete -f svc-v2.yaml
 kubectl delete -f deploy-v1.yaml
 kubectl delete -f deploy-v2.yaml
+kubectl delete -f svc_account.yaml
 kubectl delete -f namespace.yaml
 ```
 
@@ -221,29 +216,13 @@ kubectl delete -f namespace.yaml
 
 ### All traffic going to one version
 
-Weights must add up to 100. Check:
-
 ```bash
 kubectl describe httproute paytam-traffic-split -n traffic-splitting
 ```
 
 ### v2 not receiving traffic
 
-Check v2 service selector matches v2 pod labels:
-
 ```bash
 kubectl get pods -n traffic-splitting --show-labels
 kubectl describe svc paytam-svc-v2 -n traffic-splitting
 ```
-
-The `version: v2` label must match in both pod and service selector.
-
-### Verify which pod handled the request
-
-```bash
-kubectl logs -n traffic-splitting deployment/paytam-v1 -f &
-kubectl logs -n traffic-splitting deployment/paytam-v2 -f &
-curl -H "Host: tagent.cfd" http://${GW}
-```
-
-Watch which log shows the request.
