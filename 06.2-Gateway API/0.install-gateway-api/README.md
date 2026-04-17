@@ -161,27 +161,3 @@ kubectl delete namespace gateway-system
 kubectl delete -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
 ```
 
----
-
-## Troubleshooting
-
-### GatewayClass ACCEPTED = False
-
-Check Envoy Gateway logs:
-
-```bash
-kubectl logs -n gateway-system deployment/envoy-gateway --tail=30
-```
-
-### no accepted gatewayclass in logs
-
-You forgot Step 4. Create the GatewayClass manually.
-
-### Gateway ADDRESS is empty after deploying app
-
-Check Envoy proxy pods in your app namespace:
-
-```bash
-kubectl get pods -n paytam
-kubectl get events -n paytam --sort-by='.lastTimestamp'
-```
