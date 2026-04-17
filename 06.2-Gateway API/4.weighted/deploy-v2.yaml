@@ -23,7 +23,7 @@ spec:
         - name: paytam
           image: yaswanth111/jio-hotstar:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 80
           resources:
             requests:
               cpu: "250m"
