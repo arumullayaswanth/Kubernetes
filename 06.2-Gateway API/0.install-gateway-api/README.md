@@ -109,7 +109,13 @@ envoy-gateway-xxxx               1/1     Running   0
 ## Step 4 — Create GatewayClass
 
 Envoy Gateway does NOT create the GatewayClass automatically.
-You must create it manually:
+You must create it manually — or apply the `gateway_class.yaml` file:
+
+```bash
+kubectl apply -f gateway_class.yaml
+```
+
+Or manually:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -154,10 +160,17 @@ All checks passing = ready to deploy apps.
 
 ## Uninstall
 
+When you are done with ALL apps and want to remove Gateway API completely from the cluster:
+
 ```bash
+# Step 1 — delete all app resources first
 kubectl delete gatewayclass gateway-api
+
+# Step 2 — uninstall Envoy Gateway
 helm uninstall eg -n gateway-system
 kubectl delete namespace gateway-system
+
+# Step 3 — remove Gateway API CRDs
 kubectl delete -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
 ```
 
