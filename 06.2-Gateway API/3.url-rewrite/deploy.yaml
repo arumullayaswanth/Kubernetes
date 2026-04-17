@@ -15,6 +15,7 @@ spec:
       labels:
         app: paytam
     spec:
+      serviceAccountName: paytam-sa
       containers:
         - name: paytam
           image: yaswanth111/paytam:latest
