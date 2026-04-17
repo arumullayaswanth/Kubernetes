@@ -23,7 +23,7 @@ spec:
         - name: paytam
           image: yaswanth111/swiggy:latest
           ports:
-            - containerPort: 80
+            - containerPort: 3000
           resources:
             requests:
               cpu: "250m"
