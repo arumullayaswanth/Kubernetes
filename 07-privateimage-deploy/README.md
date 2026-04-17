@@ -6,25 +6,7 @@ Build your app image → Push to AWS ECR → Deploy on EKS with auto-scaling.
 
 ## Architecture
 
-```
-EC2 (build server)
-    |
-    ▼
-docker build → docker push
-    |
-    ▼
-AWS ECR (private registry)
-    |
-    ▼
-EKS pulls image (no secret needed — node IAM role handles auth)
-    |
-    ▼
-Deployment (2-10 pods via HPA)
-    |
-    ▼
-LoadBalancer Service → External access
-```
-
+![Private Image](https://github.com/arumullayaswanth/Kubernetes/blob/37dd4c326becb0c003a397d4e740d44a243ad011/07-privateimage-deploy/images.jpg?raw=true)
 ---
 
 ## Files
