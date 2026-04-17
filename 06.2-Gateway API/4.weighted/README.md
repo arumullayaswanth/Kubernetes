@@ -92,6 +92,7 @@ Concept: When weight is NOT mentioned, all backends get equal share.
 | File | Purpose |
 |---|---|
 | `namespace.yaml` | Creates `weighted` namespace |
+| `svc_account.yaml` | ServiceAccount `paytam-sa` for the app |
 | `deploy-v1.yaml` | v1 — `yaswanth111/paytam:latest` (2 replicas) |
 | `deploy-v2.yaml` | v2 — `yaswanth111/swiggy:latest` (2 replicas) |
 | `svc-v1.yaml` | ClusterIP service for v1 pods |
@@ -134,6 +135,7 @@ hostnames:
 ```bash
 # Step 1 — create namespace and both apps
 kubectl apply -f namespace.yaml
+kubectl apply -f svc_account.yaml
 kubectl apply -f deploy-v1.yaml
 kubectl apply -f deploy-v2.yaml
 kubectl apply -f svc-v1.yaml
@@ -162,6 +164,7 @@ kubectl apply -f gateway.yaml
 
 ```bash
 kubectl get pods -n weighted
+kubectl get sa -n weighted
 kubectl get svc -n weighted
 kubectl get gateway -n weighted
 kubectl get httproute -n weighted
@@ -222,6 +225,7 @@ kubectl delete -f svc-v1.yaml
 kubectl delete -f svc-v2.yaml
 kubectl delete -f deploy-v1.yaml
 kubectl delete -f deploy-v2.yaml
+kubectl delete -f svc_account.yaml
 kubectl delete -f namespace.yaml
 ```
 
