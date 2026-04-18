@@ -2,114 +2,84 @@ import React, { useState } from "react";
 import Menu from "../assets/Menu";
 import logo from "../assets/ytLogo.png";
 import logoDark from "../assets/ytLogo-dark.png";
-
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { setSidebarExtendedValue } from "../redux/categorySlice";
-import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import Stack from "@mui/material/Stack";
-import LinearProgress from "@mui/material/LinearProgress";
 import DarkModeButton from "./DarkModeButton";
 
 function Navbar({ sidebarExtended, setSidebarExtended }) {
   const dispatch = useDispatch();
   const pageRoute = useNavigate();
   const [searchValue, setSearchValue] = useState("");
-  const { isLoading } = useSelector((state) => state.category);
-  const channelLoading = useSelector((state) => state.channel.isLoading);
-  const videoLoading = useSelector((state) => state.video.isLoading);
-  const searchLoading = useSelector((state) => state.search.isLoading);
   const { darkMode } = useSelector((state) => state.darkMode);
 
   const handleOnSubmit = (e) => {
     e.preventDefault();
-    pageRoute(`/search/${searchValue}`);
-    e.target.value = " ";
+    if (searchValue.trim()) {
+      pageRoute(`/search/${searchValue}`);
+    }
   };
 
   return (
-    <>
-      <div
-        className={`h-[50px] fixed z-10 w-[100%] ${
-          darkMode ? "bg-dark text-white" : "bg-white"
-        }`}
-      >
-        {videoLoading || channelLoading || isLoading || searchLoading ? (
-          <Stack sx={{ width: "100%", color: "grey.500" }} spacing={2}>
-            <LinearProgress color="error" />
-          </Stack>
-        ) : (
-          ""
-        )}
-
-        <nav className="flex justify-between">
-          <div className="flex h-[60px] items-center space-x-2 lg:space-x-20 xl:space-x-64">
-            <div className="flex items-center space-x-4 ml-3 -mt-4 pl-2">
-              <button
-                className=""
-                onClick={() => {
-                  dispatch(setSidebarExtendedValue(!sidebarExtended));
-                  setSidebarExtended(!sidebarExtended);
-                }}
-              >
-                <Menu />
-              </button>
-              {/* <button className='block sm:hidden' onClick={() => {
-          }}>
+    <div
+      className={`h-[56px] fixed top-0 z-30 w-full flex items-center justify-between px-4
+        ${darkMode ? "bg-[#0f0f0f]" : "bg-white"}`}
+    >
+      {/* Left — hamburger + logo */}
+      <div className="flex items-center gap-x-4">
+        <button
+          onClick={() => {
+            dispatch(setSidebarExtendedValue(!sidebarExtended));
+            setSidebarExtended(!sidebarExtended);
+          }}
+          className={`p-2 rounded-full ${darkMode ? "hover:bg-[#272727]" : "hover:bg-[#f2f2f2]"}`}
+        >
           <Menu />
-          
-        </button> */}
-              <Link to="/">
-                {darkMode ? (
-                  <img className="w-24 ml-4" src={logoDark} alt="" />
-                ) : (
-                  <img className="w-32" src={logo} alt="" />
-                )}
-              </Link>
-            </div>
-            <form onSubmit={handleOnSubmit} className="-mt-3">
-              <div className="relative w-[170px] sm:w-[420px] ">
-                <input
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  type="search"
-                  name="search"
-                  id="default-search"
-                  className={`block p-2 pl-10 w-full text-sm text-gray-900 ${
-                    darkMode ? "bg-dark" : "bg-gray-50"
-                  } rounded-lg border-[1px] border-[#cccccc] focus:outline-none`}
-                  placeholder="Search"
-                  required
-                />
-                <button
-                  type="submit"
-                  className={`text-white absolute right-0 bottom-0 top-0 font-medium text-sm px-4 py-2 ${
-                    darkMode ? "bg-dark" : "bg-[#f8f8f8]"
-                  } border-[1px] border-[#cccccc]`}
-                >
-                  {" "}
-                  <svg
-                    className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <DarkModeButton />
-        </nav>
+        </button>
+        <Link to="/">
+          {darkMode ? (
+            <img className="w-24" src={logoDark} alt="YouTube" />
+          ) : (
+            <img className="w-24" src={logo} alt="YouTube" />
+          )}
+        </Link>
       </div>
-    </>
+
+      {/* Center — search */}
+      <form onSubmit={handleOnSubmit} className="flex items-center gap-x-2">
+        <div className="relative">
+          <input
+            onChange={(e) => setSearchValue(e.target.value)}
+            type="search"
+            placeholder="Search"
+            className={`w-[300px] sm:w-[420px] md:w-[500px] px-4 py-2 text-[14px] rounded-l-full border
+              ${darkMode
+                ? "bg-[#121212] border-[#303030] text-white placeholder-[#aaa] focus:border-[#1c62b9]"
+                : "bg-white border-[#ccc] text-black placeholder-[#606060] focus:border-[#1c62b9]"
+              } focus:outline-none`}
+          />
+        </div>
+        <button
+          type="submit"
+          className={`px-5 py-2 rounded-r-full border
+            ${darkMode
+              ? "bg-[#272727] border-[#303030] text-white hover:bg-[#3f3f3f]"
+              : "bg-[#f8f8f8] border-[#ccc] text-black hover:bg-[#e5e5e5]"
+            }`}
+        >
+          🔍
+        </button>
+      </form>
+
+      {/* Right — theme toggle + sign in */}
+      <div className="flex items-center gap-x-2">
+        <DarkModeButton />
+        <button className="flex items-center gap-x-1 border border-[#3ea6ff] text-[#3ea6ff] px-3 py-1 rounded-full text-[14px] font-medium hover:bg-[#263850]">
+          <span>👤</span>
+          <span className="hidden sm:inline">Sign in</span>
+        </button>
+      </div>
+    </div>
   );
 }
 
