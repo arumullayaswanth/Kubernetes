@@ -90,7 +90,7 @@ envoy-gateway-xxxx               1/1     Running   0
 
 ---
 
-## Step 4 — Create GatewayClass
+## Step 3 — Create GatewayClass
 
 ```bash
 cat <<EOF | kubectl apply -f -
