@@ -10,7 +10,7 @@ import { RiVideoLine } from "react-icons/ri";
 import { BsCollectionPlay } from "react-icons/bs";
 import { MdOutlineWatchLater } from "react-icons/md";
 import { AiOutlineLike } from "react-icons/ai";
-import { SiYoutubeshorts } from "react-icons/si";
+import { BsCameraVideo } from "react-icons/bs";
 import Menu from "../assets/Menu";
 import logo from "../assets/ytLogo.png";
 import logoDark from "../assets/ytLogo-dark.png";
@@ -27,7 +27,7 @@ function Sidebar() {
 
   const mainLinks = [
     { icon: <AiOutlineHome size={22} />, activeIcon: <AiFillHome size={22} />, label: "Home", path: "/" },
-    { icon: <SiYoutubeshorts size={22} />, activeIcon: <SiYoutubeshorts size={22} />, label: "Shorts", path: "/" },
+    { icon: <BsCameraVideo size={22} />, activeIcon: <BsCameraVideo size={22} />, label: "Shorts", path: "/" },
     { icon: <MdOutlineSubscriptions size={22} />, activeIcon: <MdSubscriptions size={22} />, label: "Subscriptions", path: "/" },
   ];
 
