@@ -58,32 +58,8 @@ kubectl get nodes
 
 Expected — 3 nodes Ready.
 
----
 
-## Step 2 — Install Gateway API CRDs
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
-```
-
-Verify:
-
-```bash
-kubectl get crd | grep gateway
-```
-
-Expected — at least these 4:
-
-```
-gatewayclasses.gateway.networking.k8s.io
-gateways.gateway.networking.k8s.io
-httproutes.gateway.networking.k8s.io
-referencegrants.gateway.networking.k8s.io
-```
-
----
-
-## Step 3 — Install Envoy Gateway
+## Step 2 — Install Envoy Gateway
 
 - Install the Gateway API CRDs and Envoy Gateway:
 
