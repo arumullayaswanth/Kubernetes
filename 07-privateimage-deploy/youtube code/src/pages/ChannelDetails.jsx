@@ -1,58 +1,91 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
-import VideoCard from '../components/VideoCard'
-import { getChannelVideos, getChannelDetails } from '../redux/channelSlice'
-import convertToInternationalCurrencySystem from '../utils/convert'
-import timeSince from '../utils/date'
+import React from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import videos from "../utils/videos";
 
 function ChannelDetails() {
-  const { id } = useParams()
-  const dispatch = useDispatch()
-  const { sidebarExtend } = useSelector((state) => state.category)
-  const { channelDetails } = useSelector((state) => state.channel)
-  const { channelVideos } = useSelector((state) => state.channel)
-  var aDay = 24 * 60 * 60 * 1000;
-  console.log(channelDetails.snippet)
-  useEffect(() => {
-    dispatch(getChannelVideos(`search?channelId=${id}&part=snippet&order=date`))
-    dispatch(getChannelDetails(`channels?part=snippet&id=${id}`))
-  }, [id,dispatch])
-  console.log(window.innerWidth)
+  const { sidebarExtend } = useSelector((state) => state.category);
+  const { darkMode } = useSelector((state) => state.darkMode);
+  const pageRoute = useNavigate();
+
   return (
     <>
-      <div className={`sm:hidden overlayEffect ${sidebarExtend ? "block" : "hidden"}`}></div>
+      <div
+        className={`sm:hidden overlayEffect ${sidebarExtend ? "block" : "hidden"
+          }`}
+      ></div>
 
-      <div className={`pt-14 ml-4 pl-0  ${sidebarExtend ? "sm:pl-[180px]" : "sm:pl-[70px]"}`}>
-        {/* <img style={{ backgroundSize: "cover" }} className='w-[100%] h-[100px]' src= /> */}
-        <img className='w-[100%] h-[120px] sm:h-[160px] lg:h-[210px] bg-cover' style={{ background: `url(${channelDetails?.brandingSettings?.image?.bannerExternalUrl})` }} />
-        <div className='flex gap-x-5 items-center my-5'>
-          <img className='rounded-[40px] w-12 h-12 md:w-16 md:h-16' src={channelDetails?.snippet?.thumbnails?.medium?.url} />
-          <div className='flex flex-col'>
-            <h3 className='text-md md:text-xl font-medium tracking-wide'>{channelDetails?.snippet?.title}</h3>
-            <div className='flex flex-col'>
+      <div
+        className={`pt-14 ml-4 pl-0 ${sidebarExtend ? "sm:pl-[180px]" : "sm:pl-[70px]"
+          }`}
+      >
+        {/* Channel Banner */}
+        <div
+          className="w-[100%] h-[120px] sm:h-[160px] lg:h-[200px] rounded-[12px]"
+          style={{
+            background:
+              "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+          }}
+        />
 
-              <span className='text-[12px] md:text-[14px] tracking-wide font-[500] text-[#323232]'>{channelDetails?.snippet?.customUrl}</span>
-              <span className='text-[12px] md:text-[13px] tracking-wider -mt-1 font-[500] text-[#323232]'>{convertToInternationalCurrencySystem(channelDetails?.statistics?.subscriberCount)}</span>
-            </div>
+        {/* Channel Info */}
+        <div className="flex gap-x-5 items-center my-5">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-2xl font-bold">Y</span>
+          </div>
+          <div className="flex flex-col">
+            <h3
+              className={`text-xl md:text-2xl font-semibold tracking-wide ${darkMode ? "text-white" : "text-black"
+                }`}
+            >
+              Yaswanth Arumulla
+            </h3>
+            <span className="text-[13px] tracking-wide font-[500] text-[#606060]">
+              @yaswantharumulla
+            </span>
+            <span className="text-[13px] tracking-wider font-[500] text-[#606060]">
+              DevOps • AWS • Kubernetes • CI/CD
+            </span>
           </div>
         </div>
-        <div>
-          <h4 className='text-[16px] text-[#585858] font-bold tracking-wider'>VIDEOS</h4>
-          <div className='mt-3 flex flex-wrap gap-x-5 gap-y-3'>
-            {
-              channelVideos.map((e, index) => {
-                return (
 
-                  <VideoCard key={index + 1} thumbnail={e.snippet?.thumbnails?.medium?.url} width="210px" title={e.snippet.title} channel={e.snippet.channelTitle} on={timeSince(new Date(Date.parse(e.snippet.publishedAt) - aDay))} channelId={e.snippet.channelId} videoId={e.id.videoId} />
-                )
-              })
-            }
+        {/* Videos */}
+        <div>
+          <h4
+            className={`text-[16px] font-bold tracking-wider mb-3 ${darkMode ? "text-white" : "text-[#585858]"
+              }`}
+          >
+            VIDEOS
+          </h4>
+          <div className="flex flex-wrap gap-x-5 gap-y-5">
+            {videos.map((video, index) => (
+              <div
+                key={index}
+                className="cursor-pointer"
+                style={{ width: "210px" }}
+                onClick={() => pageRoute(`/watch/${video.videoId}`)}
+              >
+                <img
+                  className="w-[210px] h-[118px] rounded-[8px] object-cover"
+                  src={video.thumbnail}
+                  alt={video.title}
+                />
+                <h3
+                  className={`text-[13px] font-medium mt-1 leading-[18px] ${darkMode ? "text-white" : "text-[#0f0f0f]"
+                    }`}
+                >
+                  {video.title?.slice(0, 50)}...
+                </h3>
+                <p className="text-[#606060] text-[11px] mt-1">
+                  {video.publishedAt}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </>
-  )
+  );
 }
 
-export default ChannelDetails
+export default ChannelDetails;

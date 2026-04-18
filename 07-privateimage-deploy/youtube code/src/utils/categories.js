@@ -1,21 +1,11 @@
-import { HiOutlineMusicalNote } from "react-icons/hi2";
-import { BsLaptop } from "react-icons/bs";
-import { BsEmojiLaughing } from "react-icons/bs";
-import { TiCodeOutline } from "react-icons/ti";
-import { IoFastFoodSharp } from "react-icons/io5";
-import { AiOutlineHome } from "react-icons/ai";
-import { AiFillHome } from "react-icons/ai";
-import { HiMusicalNote } from "react-icons/hi2";
-import { TiCode } from "react-icons/ti";
-import { BsFillEmojiLaughingFill } from "react-icons/bs";
-import { BsLaptopFill } from "react-icons/bs";
-import { IoFastFoodOutline } from "react-icons/io5";
-import { IoSkullSharp } from "react-icons/io5";
-import { IoSkullOutline } from "react-icons/io5";
-// import { BsStar } from "react-icons/bs";
-// import { BsStarFill } from "react-icons/bs";
-import { MdOutlineSportsCricket } from "react-icons/md";
-import { MdSportsCricket } from "react-icons/md";
+import { AiOutlineHome, AiFillHome } from "react-icons/ai";
+import { BsLaptop, BsLaptopFill } from "react-icons/bs";
+import { TiCodeOutline, TiCode } from "react-icons/ti";
+import { MdOutlineCloud, MdCloud } from "react-icons/md";
+import { SiKubernetes } from "react-icons/si";
+import { FaDocker } from "react-icons/fa";
+import { VscGitMerge } from "react-icons/vsc";
+import { MdOutlineSecurity, MdSecurity } from "react-icons/md";
 
 const categories = [
   {
@@ -26,47 +16,46 @@ const categories = [
   },
   {
     id: 2,
-    name: "React JS",
+    name: "DevOps",
     icon: <TiCodeOutline style={{ height: "22px", width: "30px" }} />,
     active: <TiCode style={{ height: "22px", width: "30px" }} />,
   },
   {
     id: 3,
-    name: "DuaLipa",
-    icon: <HiOutlineMusicalNote style={{ height: "22px", width: "30px" }} />,
-    active: <HiMusicalNote style={{ height: "22px", width: "30px" }} />,
+    name: "Kubernetes",
+    icon: <SiKubernetes style={{ height: "22px", width: "30px" }} />,
+    active: <SiKubernetes style={{ height: "22px", width: "30px" }} />,
   },
   {
     id: 4,
-    name: "Comedy",
-    icon: <BsEmojiLaughing style={{ height: "22px", width: "30px" }} />,
-    active: (
-      <BsFillEmojiLaughingFill style={{ height: "22px", width: "30px" }} />
-    ),
+    name: "AWS",
+    icon: <MdOutlineCloud style={{ height: "22px", width: "30px" }} />,
+    active: <MdCloud style={{ height: "22px", width: "30px" }} />,
   },
   {
     id: 5,
+    name: "Docker",
+    icon: <FaDocker style={{ height: "22px", width: "30px" }} />,
+    active: <FaDocker style={{ height: "22px", width: "30px" }} />,
+  },
+  {
+    id: 6,
+    name: "CI/CD",
+    icon: <VscGitMerge style={{ height: "22px", width: "30px" }} />,
+    active: <VscGitMerge style={{ height: "22px", width: "30px" }} />,
+  },
+  {
+    id: 7,
+    name: "Security",
+    icon: <MdOutlineSecurity style={{ height: "22px", width: "30px" }} />,
+    active: <MdSecurity style={{ height: "22px", width: "30px" }} />,
+  },
+  {
+    id: 8,
     name: "Technology",
     icon: <BsLaptop style={{ height: "22px", width: "30px" }} />,
     active: <BsLaptopFill style={{ height: "22px", width: "30px" }} />,
   },
-  {
-    id: 6,
-    name: "Food",
-    icon: <IoFastFoodOutline style={{ height: "22px", width: "30px" }} />,
-    active: <IoFastFoodSharp style={{ height: "22px", width: "30px" }} />,
-  },
-  {
-    id: 7,
-    name: "Travis Scott",
-    icon: <IoSkullOutline style={{ height: "22px", width: "30px" }} />,
-    active: <IoSkullSharp style={{ height: "22px", width: "30px" }} />,
-  },
-  {
-    id:8,
-    name:"Cricket",
-    icon:<MdOutlineSportsCricket style={{ height: "22px", width: "30px" }} />,
-    active: <MdSportsCricket style={{ height: "22px", width: "30px" }} />,
-  }
 ];
+
 export default categories;
