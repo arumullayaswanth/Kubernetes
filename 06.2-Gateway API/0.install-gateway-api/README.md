@@ -85,11 +85,18 @@ referencegrants.gateway.networking.k8s.io
 
 ## Step 3 — Install Envoy Gateway
 
+- Install the Gateway API CRDs and Envoy Gateway:
+
 ```bash
 helm install eg oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.6.1 \
+  --version v1.7.2 \
   -n gateway-system \
   --create-namespace
+```
+- Wait for Envoy Gateway to become available:
+
+```bash
+kubectl wait --timeout=5m -n gateway-system deployment/envoy-gateway --for=condition=Available
 ```
 
 Verify pod is running:
@@ -109,24 +116,8 @@ envoy-gateway-xxxx               1/1     Running   0
 
 ## Step 4 — Create GatewayClass
 
-Envoy Gateway does NOT create the GatewayClass automatically.
-You must create it manually — or apply the `gateway_class.yaml` file:
-
 ```bash
-kubectl apply -f gateway_class.yaml
-```
-
-Or manually:
-
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: gateway-api
-spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
-EOF
+kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.7.2/quickstart.yaml -n default
 ```
 
 Verify:
