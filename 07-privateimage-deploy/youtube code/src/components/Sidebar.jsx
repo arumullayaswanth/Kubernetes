@@ -27,7 +27,7 @@ function Sidebar() {
 
   const mainLinks = [
     { icon: <AiOutlineHome size={22} />, activeIcon: <AiFillHome size={22} />, label: "Home", path: "/" },
-    { icon: <BsCameraVideo size={22} />, activeIcon: <BsCameraVideo size={22} />, label: "Shorts", path: "/" },
+    { icon: <BsCameraVideo size={22} />, activeIcon: <BsCameraVideo size={22} />, label: "Shorts", path: "/shorts" },
     { icon: <MdOutlineSubscriptions size={22} />, activeIcon: <MdSubscriptions size={22} />, label: "Subscriptions", path: "/" },
   ];
 
