@@ -117,7 +117,14 @@ envoy-gateway-xxxx               1/1     Running   0
 ## Step 4 — Create GatewayClass
 
 ```bash
-kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.7.2/quickstart.yaml -n default
+cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: gateway-api
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+EOF
 ```
 
 Verify:
