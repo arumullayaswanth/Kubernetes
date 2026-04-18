@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReactPlayer from "react-player";
 import { useSelector } from "react-redux";
-import videos from "../utils/videos";
+import { videos, shorts } from "../utils/videos";
 
 const RelatedVideo = ({ videoId, title, thumbnail, channel, publishedAt }) => {
   const pageRoute = useNavigate();

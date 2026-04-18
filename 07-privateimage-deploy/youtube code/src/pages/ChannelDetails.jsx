@@ -1,7 +1,7 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import videos from "../utils/videos";
+import { videos } from "../utils/videos";
 
 function ChannelDetails() {
   const { sidebarExtend } = useSelector((state) => state.category);
