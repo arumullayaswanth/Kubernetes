@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { videos } from "../utils/videos";
+import bannerImg from "../images/channels4_banner.jpg";
+import profileImg from "../images/channels4_profile.jpg";
 
 function ChannelDetails() {
   const { sidebarExtend } = useSelector((state) => state.category);
@@ -22,18 +24,23 @@ function ChannelDetails() {
       <div className={`pt-14 pl-[72px] ${bg} min-h-screen`}>
 
         {/* Channel Banner */}
-        <div
-          className="w-full h-[120px] sm:h-[160px] lg:h-[200px]"
-          style={{
-            background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #533483 100%)",
-          }}
-        />
+        <div className="w-full h-[120px] sm:h-[160px] lg:h-[200px] overflow-hidden">
+          <img
+            src={bannerImg}
+            alt="Channel Banner"
+            className="w-full h-full object-cover"
+          />
+        </div>
 
         {/* Channel Header */}
         <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-end gap-x-6 gap-y-4">
           {/* Avatar */}
-          <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center flex-shrink-0 -mt-10 sm:-mt-14 border-4 border-white">
-            <span className="text-white text-3xl sm:text-4xl font-bold">Y</span>
+          <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden flex-shrink-0 -mt-10 sm:-mt-14 border-4 border-white">
+            <img
+              src={profileImg}
+              alt="Channel Profile"
+              className="w-full h-full object-cover"
+            />
           </div>
 
           {/* Channel Info */}
