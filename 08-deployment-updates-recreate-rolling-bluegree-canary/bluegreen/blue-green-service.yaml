@@ -1,14 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp
-  namespace: default
+  name: blue-green-svc
+  namespace: bluegreen-demo
+  labels:
+    app: blue-green-app
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
-    app: myapp
-    replica: blue  #enables blue or green deployment to give access service here blue is nginx and green is httpd for our understanding
+    app: blue-green-app
+    color: green
   ports:
-    - protocol: TCP
+    - name: http
       port: 80
-      targetPort: http
+      targetPort: 5678

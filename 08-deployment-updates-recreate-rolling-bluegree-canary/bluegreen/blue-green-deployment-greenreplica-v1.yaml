@@ -1,25 +1,29 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: green-myapp
-  namespace: default
+  name: blue-green-green
+  namespace: bluegreen-demo
+  labels:
+    app: blue-green-app
+    color: green
+    version: v1
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
-      app: myapp
-      replica: green
+      app: blue-green-app
+      color: green
   template:
     metadata:
       labels:
-        app: myapp
-        replica: green
+        app: blue-green-app
+        color: green
+        version: v1
     spec:
       containers:
-        - name: myapp
-          image: httpd
+        - name: blue-green-green
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-text=Blue Green deployment GREEN version v1"
           ports:
-            - name: http
-              containerPort: 80
-        
+            - containerPort: 5678

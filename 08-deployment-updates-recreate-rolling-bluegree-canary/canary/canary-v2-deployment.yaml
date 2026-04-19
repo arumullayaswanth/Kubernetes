@@ -1,32 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
-  name: canary-demo-v2-deployment
+  name: canary-v2
+  namespace: canary-demo
   labels:
     app: canary-demo
+    version: v2
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: canary-demo
-
+      version: v2
   template:
     metadata:
       labels:
         app: canary-demo
+        version: v2
     spec:
       containers:
-        - name: canary-demo-v2
-          image: httpd #version-2
-          resources:
-            requests:
-              cpu: "10m" #1% of a core
-              memory: "150Mi"
-            limits:
-              cpu: "50m" #5% of a core
-              memory: "400Mi"
-          imagePullPolicy: Always
-      restartPolicy: Always
-      
-      
+        - name: canary-v2
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-text=Canary deployment version v2"
+          ports:
+            - containerPort: 5678

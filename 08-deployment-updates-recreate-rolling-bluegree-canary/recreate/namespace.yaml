@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: recreate-demo
+  labels:
+    strategy: recreate
