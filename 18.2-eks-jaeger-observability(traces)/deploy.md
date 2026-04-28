@@ -858,6 +858,8 @@ kubectl -n observability get ingress
 If you want to remove this setup later:
 
 ```bash
+kubectl patch ingress observability-alb -n observability \
+-p '{"metadata":{"finalizers":[]}}' --type=merge
 kubectl delete -f manifests/ingress/ingress.yaml
 kubectl delete -f manifests/app/
 kubectl delete -f manifests/otel-collector/
