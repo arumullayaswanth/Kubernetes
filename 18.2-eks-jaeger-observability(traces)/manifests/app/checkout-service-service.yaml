@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-service
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: checkout-service
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: checkout-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP

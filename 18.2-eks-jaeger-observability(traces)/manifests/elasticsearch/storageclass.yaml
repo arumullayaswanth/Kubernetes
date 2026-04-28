@@ -1,0 +1,16 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: jaeger-elasticsearch-gp2
+  annotations:
+    # Use a dedicated StorageClass so Jaeger trace storage has predictable
+    # performance and does not depend on the cluster default class.
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+parameters:
+  type: gp2
+  fsType: ext4
+  encrypted: "true"

@@ -1,0 +1,194 @@
+# Jaeger production values for AWS EKS.
+# This file intentionally pins to the classic Jaeger chart line that supports
+# separate collector, query, and agent components.
+
+provisionDataStore:
+  # Use a self-hosted external datastore deployed separately in this repo.
+  cassandra: false
+  elasticsearch: false
+  kafka: false
+
+allInOne:
+  enabled: false
+
+storage:
+  # Jaeger uses the Elasticsearch storage implementation against the
+  # self-hosted Elasticsearch StatefulSet deployed in this repo.
+  type: elasticsearch
+  elasticsearch:
+    scheme: http
+    host: elasticsearch.observability.svc.cluster.local
+    port: 9200
+    usePassword: false
+    nodesWanOnly: false
+
+collector:
+  enabled: true
+  replicaCount: 3
+  extraEnv:
+    # Enable native OTLP support on the Jaeger collector.
+    - name: COLLECTOR_OTLP_ENABLED
+      value: "true"
+  cmdlineParams:
+    # Keep index mode simple and explicit for small/medium clusters.
+    es.use-aliases: "false"
+    es.num-shards: "3"
+    es.num-replicas: "1"
+    # Keep ingestion latency predictable under bursty workloads.
+    collector.queue-size: "5000"
+    collector.num-workers: "100"
+  service:
+    type: ClusterIP
+    otlp:
+      grpc:
+        name: otlp-grpc
+        port: 4317
+      http:
+        name: otlp-http
+        port: 4318
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: false
+    annotations: {}
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+  samplingConfig: |
+    {
+      "service_strategies": [
+        {
+          "service": "checkout-service",
+          "type": "probabilistic",
+          "param": 0.2
+        },
+        {
+          "service": "inventory-service",
+          "type": "probabilistic",
+          "param": 0.2
+        }
+      ],
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 0.1
+      }
+    }
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: jaeger-collector
+  topologySpreadContraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: jaeger-collector
+
+query:
+  enabled: true
+  replicaCount: 2
+  basePath: /
+  agentSidecar:
+    enabled: false
+  service:
+    type: ClusterIP
+    port: 80
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: false
+    annotations: {}
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: jaeger-query
+  topologySpreadContraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: jaeger-query
+
+agent:
+  enabled: true
+  useHostNetwork: false
+  daemonset:
+    useHostPort: false
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: false
+    annotations: {}
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+esIndexCleaner:
+  enabled: true
+  numberOfDays: 14
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+esRollover:
+  enabled: false
+  extraEnv:
+    # Roll the write index every day to keep shards balanced.
+    - name: CONDITIONS
+      value: '{"max_age": "1d"}'
+  initHook:
+    extraEnv:
+      - name: SHARDS
+        value: "3"
+      - name: REPLICAS
+        value: "1"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+spark:
+  enabled: false

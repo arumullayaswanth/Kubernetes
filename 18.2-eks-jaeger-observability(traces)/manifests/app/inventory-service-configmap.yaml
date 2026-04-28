@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-service-config
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: inventory-service
+    app.kubernetes.io/part-of: observability
+data:
+  OTEL_SERVICE_NAME: inventory-service
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  OTEL_LOG_LEVEL: info
+  OTEL_TRACES_SAMPLER: parentbased_traceidratio
+  OTEL_TRACES_SAMPLER_ARG: "0.2"
+  OTEL_RESOURCE_ATTRIBUTES: service.name=inventory-service,service.namespace=observability,deployment.environment=production,cloud.provider=aws,cloud.platform=aws_eks
+  APP_ENV: production
+  GIN_MODE: release
+  USER: observability
+  PORT: "8081"

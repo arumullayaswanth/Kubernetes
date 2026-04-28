@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: inventory-service
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: inventory-service
+    app.kubernetes.io/part-of: observability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inventory-service

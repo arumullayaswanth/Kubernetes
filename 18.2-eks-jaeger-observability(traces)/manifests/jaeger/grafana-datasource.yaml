@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-jaeger
+  namespace: observability
+  labels:
+    grafana_datasource: "1"
+    app.kubernetes.io/part-of: observability
+data:
+  jaeger-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Jaeger
+        type: jaeger
+        access: proxy
+        url: http://jaeger-query.observability.svc.cluster.local
+        isDefault: false
+        editable: true

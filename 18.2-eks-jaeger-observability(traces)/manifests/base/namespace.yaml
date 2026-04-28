@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    app.kubernetes.io/name: observability
+    app.kubernetes.io/part-of: observability-platform
+    environment: production
+    # Keep the namespace aligned with baseline Pod Security without forcing
+    # a restricted profile that may conflict with third-party images.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

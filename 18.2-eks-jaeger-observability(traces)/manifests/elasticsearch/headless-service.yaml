@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-discovery
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: discovery
+    app.kubernetes.io/part-of: observability
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: elasticsearch
+  ports:
+    - name: transport
+      port: 9300
+      targetPort: 9300
+      protocol: TCP

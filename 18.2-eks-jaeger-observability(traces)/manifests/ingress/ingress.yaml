@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: observability-alb
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: observability-alb
+    app.kubernetes.io/part-of: observability
+  annotations:
+    # Internet-facing is shown here because the brief requires exposing the UI and sample app.
+    # For private operator access, switch to `internal`.
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ip-address-type: ipv4
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/certificate-arn: "<your-acm-certificate-arn>"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true,idle_timeout.timeout_seconds=60,deletion_protection.enabled=true
+    alb.ingress.kubernetes.io/tags: Environment=production,Platform=observability,Owner=sre
+spec:
+  ingressClassName: alb
+  rules:
+    - host: "<your-jaeger-domain>"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jaeger-query
+                port:
+                  number: 80
+    - host: "<your-app-domain>"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: checkout-service
+                port:
+                  number: 80
