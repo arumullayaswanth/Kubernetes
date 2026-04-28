@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: devops-demo
+data:
+  POSTGRES_DB: devops_demo
+  LOG_LEVEL: info
+  CORS_ORIGIN: "*"
+  USER_SERVICE_URL: http://user-service:3000
+  REDIS_URL: redis://redis:6379/0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: devops-demo
+data:
+  GF_SECURITY_ADMIN_USER: admin

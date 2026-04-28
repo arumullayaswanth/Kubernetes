@@ -1,0 +1,23 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "description": "User microservice with PostgreSQL, Prometheus metrics, and structured logging.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-async-errors": "^3.1.1",
+    "pg": "^8.13.1",
+    "pino": "^9.5.0",
+    "pino-http": "^10.3.0",
+    "prom-client": "^15.1.3",
+    "uuid": "^11.0.3",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,54 @@
+groups:
+  - name: microservices.rules
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{service=~"user-service|order-service|payment-service",status_code=~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total{service=~"user-service|order-service|payment-service"}[5m])) by (service)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "5xx responses exceeded 5% for service {{ $labels.service }} in the last 5 minutes."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{service=~"user-service|order-service|payment-service"}[5m])) by (le, service)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency on {{ $labels.service }}"
+          description: "95th percentile latency is above 1 second for service {{ $labels.service }}."
+
+      - alert: PodRestartDetected
+        expr: changes(process_start_time_seconds{service=~"user-service|order-service|payment-service"}[15m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Process restart detected for {{ $labels.service }}"
+          description: "The service process restarted within the last 15 minutes."
+
+      - alert: HighCPUUsage
+        expr: |
+          (
+            (
+              sum(rate(process_cpu_seconds_total{service=~"user-service|order-service|payment-service"}[5m])) by (service)
+              or
+              sum(rate(process_cpu_user_seconds_total{service=~"user-service|order-service|payment-service"}[5m]) + rate(process_cpu_system_seconds_total{service=~"user-service|order-service|payment-service"}[5m])) by (service)
+            ) * 100
+          ) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage above 80% for {{ $labels.service }}"
+          description: "CPU consumption stayed above 80% of one core for service {{ $labels.service }}."
