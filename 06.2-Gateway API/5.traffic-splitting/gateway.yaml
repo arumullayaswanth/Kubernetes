@@ -1,7 +1,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: paytam-gateway
+  name: traffic-gateway
   namespace: traffic-splitting
 spec:
   gatewayClassName: gateway-api
@@ -9,12 +9,18 @@ spec:
     - name: http
       protocol: HTTP
       port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
     - name: https
       protocol: HTTPS
       port: 443
+      allowedRoutes:
+        namespaces:
+          from: Same
       tls:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: cert-manager-tls
+            name: traffic-splitting-tls
             namespace: traffic-splitting

@@ -5,38 +5,54 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    # ---------------------------------------------------------------
-    # Let's Encrypt sends certificate expiry warnings to this email
-    # ---------------------------------------------------------------
     email: yaswanth.arumulla@gmail.com
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
-      - http01:
+      # Each solver has a label selector — cert-manager picks the solver
+      # whose selector matches the labels on the Certificate resource.
+      # This guarantees deterministic solver selection with no namespace mismatch.
+
+      - selector:
+          matchLabels:
+            solver: paytam
+        http01:
           gatewayHTTPRoute:
             parentRefs:
               - group: gateway.networking.k8s.io
                 kind: Gateway
                 name: paytam-gateway
                 namespace: paytam
-      - http01:
+
+      - selector:
+          matchLabels:
+            solver: url-rewrite
+        http01:
           gatewayHTTPRoute:
             parentRefs:
               - group: gateway.networking.k8s.io
                 kind: Gateway
-                name: paytam-gateway
+                name: url-rewrite-gateway
                 namespace: url-rewrite
-      - http01:
+
+      - selector:
+          matchLabels:
+            solver: weighted
+        http01:
           gatewayHTTPRoute:
             parentRefs:
               - group: gateway.networking.k8s.io
                 kind: Gateway
-                name: paytam-gateway
+                name: weighted-gateway
                 namespace: weighted
-      - http01:
+
+      - selector:
+          matchLabels:
+            solver: traffic
+        http01:
           gatewayHTTPRoute:
             parentRefs:
               - group: gateway.networking.k8s.io
                 kind: Gateway
-                name: paytam-gateway
+                name: traffic-gateway
                 namespace: traffic-splitting

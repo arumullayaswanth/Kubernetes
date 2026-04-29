@@ -9,12 +9,8 @@ spec:
   parentRefs:
     - name: paytam-gateway
       namespace: paytam
-  # ---------------------------------------------------------------
-  # REPLACE with your real domain
-  # Example: paytam.aluru.com
-  # ---------------------------------------------------------------
   hostnames:
-    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+    - paytam.tagent.cfd
   rules:
     - matches:
         - path:

@@ -1,68 +1,72 @@
-# Section 1 — cert-manager: Automatic TLS for Envoy Gateway
+# Section 1 — cert-manager: Automatic TLS (Per-Namespace Isolation)
 
 cert-manager automatically issues and renews free SSL certificates from Let's Encrypt.
-No manual certificate management. No expiry worries.
+Each namespace is fully isolated — its own Gateway, its own Certificate, its own TLS secret.
 
 ---
 
-## How It Works
+## Architecture
 
 ```
-cert-manager installed on EKS (bash install-cert-manager.sh)
-        |
-        ▼
-ClusterIssuer: letsencrypt-prod (connects to Let's Encrypt) (kubectl apply -f cluster-issuer.yaml)
-ClusterIssuer is cluster-wide — one issuer works for all namespaces.
-        |
-        ▼
-Certificate resource created in each app namespace
-        |
-        ▼
-cert-manager calls Let's Encrypt API
-        |
-        ▼
-Let's Encrypt sends HTTP challenge to tagent.cfd
-        |
-        ▼
-cert-manager answers the challenge via a temporary HTTPRoute
-        |
-        ▼
-Let's Encrypt verifies you own tagent.cfd
-        |
-        ▼
-Issues free SSL certificate (valid 90 days) ['tls.crt' — the certificate file `tls.key` — the private key]
-        |
-        ▼
-Stored as Kubernetes Secret "cert-manager-tls" in each namespace
-        |
-        ▼
-Envoy Gateway uses that Secret for HTTPS on port 443 (gateway.yaml)`tls`
-        |
-        ▼
-Auto-renews at 60 days
+1 ClusterIssuer (letsencrypt-prod)
+  ├── solver: paytam      → paytam-gateway      (namespace: paytam)
+  ├── solver: url-rewrite → url-rewrite-gateway  (namespace: url-rewrite)
+  ├── solver: weighted    → weighted-gateway     (namespace: weighted)
+  └── solver: traffic     → traffic-gateway      (namespace: traffic-splitting)
+         │
+         ▼ (label selector on Certificate picks the right solver)
+4 Certificates (one per namespace, each labeled to match its solver)
+  ├── paytam-cert          labels: solver=paytam      → paytam.tagent.cfd
+  ├── url-rewrite-cert     labels: solver=url-rewrite → url-rewrite.tagent.cfd
+  ├── weighted-cert        labels: solver=weighted    → weighted.tagent.cfd
+  └── traffic-splitting-cert labels: solver=traffic  → traffic-splitting.tagent.cfd
+         │
+         ▼
+4 TLS Secrets (auto-created by cert-manager in each namespace)
+  ├── paytam-tls           (namespace: paytam)
+  ├── url-rewrite-tls      (namespace: url-rewrite)
+  ├── weighted-tls         (namespace: weighted)
+  └── traffic-splitting-tls (namespace: traffic-splitting)
+         │
+         ▼
+4 Gateways (each terminates TLS using its own secret)
+  ├── paytam-gateway       allowedRoutes: Same
+  ├── url-rewrite-gateway  allowedRoutes: Same
+  ├── weighted-gateway     allowedRoutes: Same
+  └── traffic-gateway      allowedRoutes: Same
 ```
+
+### Why selector-based solvers?
+
+Without selectors, cert-manager picks a solver arbitrarily when multiple solvers exist.
+This causes the HTTP-01 challenge HTTPRoute to be created on the wrong Gateway
+(different namespace), resulting in 404s from Let's Encrypt.
+
+With `selector.matchLabels`, cert-manager deterministically picks the solver whose
+label matches the Certificate's label — guaranteeing the challenge always routes
+through the correct namespace's Gateway.
 
 ---
 
-## Files In This Folder
+## File Map
 
 | File | Purpose |
 |---|---|
 | `install-cert-manager.sh` | Installs cert-manager on EKS |
-| `cluster-issuer.yaml` | Connects cert-manager to Let's Encrypt |
+| `cluster-issuer.yaml` | ClusterIssuer with 4 selector-based solvers |
+| `cleanup-and-reapply.sh` | Full cleanup + reapply script |
 | `README.md` | This guide |
 
-Each app folder has its own `certificate.yaml`:
+Per-namespace resources:
 
-| Folder | Namespace | Domain |
-|---|---|---|
-| `2.paytam-app/certificate.yaml` | paytam | tagent.cfd |
-| `3.url-rewrite/certificate.yaml` | url-rewrite | tagent.cfd |
-| `4.weighted/certificate.yaml` | weighted | tagent.cfd |
-| `5.traffic-splitting/certificate.yaml` | traffic-splitting | tagent.cfd |
+| Namespace | Gateway | Certificate | Secret | Domain |
+|---|---|---|---|---|
+| paytam | paytam-gateway | paytam-cert (solver=paytam) | paytam-tls | paytam.tagent.cfd |
+| url-rewrite | url-rewrite-gateway | url-rewrite-cert (solver=url-rewrite) | url-rewrite-tls | url-rewrite.tagent.cfd |
+| weighted | weighted-gateway | weighted-cert (solver=weighted) | weighted-tls | weighted.tagent.cfd |
+| traffic-splitting | traffic-gateway | traffic-splitting-cert (solver=traffic) | traffic-splitting-tls | traffic-splitting.tagent.cfd |
 
 ---
-
 
 ## Step 1 — Install cert-manager
 
@@ -70,14 +74,13 @@ Each app folder has its own `certificate.yaml`:
 bash install-cert-manager.sh
 ```
 
-Verify all 3 pods are Running:
+Verify all 3 pods are Running before continuing:
 
 ```bash
 kubectl get pods -n cert-manager
 ```
 
 Expected:
-
 ```
 NAME                                      READY   STATUS
 cert-manager-xxxx                         1/1     Running
@@ -85,37 +88,51 @@ cert-manager-webhook-xxxx                 1/1     Running
 cert-manager-cainjector-xxxx              1/1     Running
 ```
 
-Do NOT continue until all 3 are Running.
-
 ---
 
 ## Step 2 — Apply ClusterIssuer
 
-The `cluster-issuer.yaml` already has the email `yaswanth.arumulla@gmail.com`.
-Update it if you want a different email:
-
 ```bash
 kubectl apply -f cluster-issuer.yaml
-```
-
-Verify:
-
-```bash
 kubectl get clusterissuer letsencrypt-prod
 ```
 
-Expected:
+Expected: `READY = True`
 
+---
+
+## Step 3 — Apply Gateways
+
+```bash
+kubectl apply -f ../2.paytam-app/gateway.yaml
+kubectl apply -f ../3.url-rewrite/gateway.yaml
+kubectl apply -f ../4.weighted/gateway.yaml
+kubectl apply -f ../5.traffic-splitting/gateway.yaml
 ```
-NAME               READY
-letsencrypt-prod   True
+
+Verify each Gateway gets an external ADDRESS (this is the IP you point DNS to):
+
+```bash
+kubectl get gateway -A
 ```
 
 ---
 
-## Step 3 — Apply All Certificates
+## Step 4 — Point DNS
 
-After all app namespaces exist and DNS is pointing to Gateway ADDRESS:
+Before applying Certificates, create DNS A records for all 4 subdomains pointing
+to the Gateway's external load balancer IP/hostname:
+
+| Record | Target |
+|---|---|
+| paytam.tagent.cfd | Gateway ADDRESS |
+| url-rewrite.tagent.cfd | Gateway ADDRESS |
+| weighted.tagent.cfd | Gateway ADDRESS |
+| traffic-splitting.tagent.cfd | Gateway ADDRESS |
+
+---
+
+## Step 5 — Apply Certificates
 
 ```bash
 kubectl apply -f ../2.paytam-app/certificate.yaml
@@ -124,45 +141,58 @@ kubectl apply -f ../4.weighted/certificate.yaml
 kubectl apply -f ../5.traffic-splitting/certificate.yaml
 ```
 
-Watch all certificates:
+Watch status:
 
 ```bash
 kubectl get certificate -A -w
 ```
 
 Expected — all READY = True:
-
 ```
-NAMESPACE          NAME               READY   SECRET
-paytam             cert-manager-tls   True    cert-manager-tls
-url-rewrite        cert-manager-tls   True    cert-manager-tls
-weighted           cert-manager-tls   True    cert-manager-tls
-traffic-splitting  cert-manager-tls   True    cert-manager-tls
+NAMESPACE          NAME                    READY   SECRET
+paytam             paytam-cert             True    paytam-tls
+url-rewrite        url-rewrite-cert        True    url-rewrite-tls
+weighted           weighted-cert           True    weighted-tls
+traffic-splitting  traffic-splitting-cert  True    traffic-splitting-tls
 ```
 
 ---
 
-## Step 4 — Verify Secrets Created
+## Troubleshooting
+
+**Certificates stuck / challenge failing:**
 
 ```bash
-kubectl get secret cert-manager-tls -n paytam
-kubectl get secret cert-manager-tls -n url-rewrite
-kubectl get secret cert-manager-tls -n weighted
-kubectl get secret cert-manager-tls -n traffic-splitting
+# See which solver was selected and why it failed
+kubectl describe challenge -A
+
+# Check certificate events
+kubectl describe certificate -A
+
+# Full cleanup and reapply
+bash cleanup-and-reapply.sh
 ```
 
-All should show `kubernetes.io/tls` type.
+**Common causes:**
+- DNS not propagated yet → wait and retry
+- Label on Certificate doesn't match solver selector → check `labels.solver` value
+- Gateway name/namespace in solver doesn't match actual Gateway → check cluster-issuer.yaml
+
+**Verify solver selection is correct:**
+```bash
+# The challenge should show the correct Gateway namespace
+kubectl describe challenge -A | grep -A5 "Solver"
+```
 
 ---
 
 ## Uninstall
 
 ```bash
-kubectl delete certificate cert-manager-tls -n paytam
-kubectl delete certificate cert-manager-tls -n url-rewrite
-kubectl delete certificate cert-manager-tls -n weighted
-kubectl delete certificate cert-manager-tls -n traffic-splitting
+kubectl delete certificate paytam-cert -n paytam
+kubectl delete certificate url-rewrite-cert -n url-rewrite
+kubectl delete certificate weighted-cert -n weighted
+kubectl delete certificate traffic-splitting-cert -n traffic-splitting
 kubectl delete -f cluster-issuer.yaml
 kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
 ```
-

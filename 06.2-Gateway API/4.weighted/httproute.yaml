@@ -7,18 +7,17 @@ metadata:
     app: paytam
 spec:
   parentRefs:
-    - name: paytam-gateway
+    - name: weighted-gateway
       namespace: weighted
-  # REPLACE with your real domain
   hostnames:
-    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+    - weighted.tagent.cfd
   rules:
     - matches:
         - path:
             type: PathPrefix
             value: /
       backendRefs:
-        # No weight mentioned — Kubernetes automatically splits 50/50
+        # No weight specified — Kubernetes splits 50/50 automatically
         - name: paytam-svc-v1
           port: 80
         - name: paytam-svc-v2

@@ -7,14 +7,13 @@ metadata:
     app: paytam
 spec:
   parentRefs:
-    - name: paytam-gateway
+    - name: url-rewrite-gateway
       namespace: url-rewrite
-  # REPLACE with your real domain
   hostnames:
-    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+    - url-rewrite.tagent.cfd
   rules:
     # Rule 1 — /app rewrites to /
-    # User hits: https://paytam.yourdomain.com/app
+    # User hits: https://url-rewrite.tagent.cfd/app
     # Pod receives: /
     - matches:
         - path:
@@ -31,7 +30,7 @@ spec:
           port: 80
 
     # Rule 2 — /paytam rewrites to /
-    # User hits: https://paytam.yourdomain.com/paytam
+    # User hits: https://url-rewrite.tagent.cfd/paytam
     # Pod receives: /
     - matches:
         - path:
@@ -48,7 +47,7 @@ spec:
           port: 80
 
     # Rule 3 — /api/v1 rewrites to /api
-    # User hits: https://paytam.yourdomain.com/api/v1/users
+    # User hits: https://url-rewrite.tagent.cfd/api/v1/users
     # Pod receives: /api/users
     - matches:
         - path:
@@ -64,8 +63,8 @@ spec:
         - name: paytam-svc
           port: 80
 
-    # Rule 4 — default / catch all
-    # User hits: https://paytam.yourdomain.com/anything
+    # Rule 4 — default / catch-all
+    # User hits: https://url-rewrite.tagent.cfd/anything
     # Pod receives: /anything (no rewrite)
     - matches:
         - path:

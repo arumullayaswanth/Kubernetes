@@ -7,11 +7,10 @@ metadata:
     app: paytam
 spec:
   parentRefs:
-    - name: paytam-gateway
+    - name: traffic-gateway
       namespace: traffic-splitting
-  # REPLACE with your real domain
   hostnames:
-    - YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+    - traffic-splitting.tagent.cfd
   rules:
     - matches:
         - path:
