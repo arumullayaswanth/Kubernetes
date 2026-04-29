@@ -141,7 +141,7 @@ kubectl get svc -n traffic-splitting
 kubectl get gateway -n traffic-splitting
 kubectl get httproute -n traffic-splitting
 kubectl get certificate -n traffic-splitting
-kubectl get secret cert-manager-tls -n traffic-splitting
+kubectl get secret traffic-splitting-tls -n traffic-splitting
 ```
 
 Expected pods:
@@ -160,26 +160,49 @@ paytam-v2-xxxx               1/1     Running
 Get Gateway address:
 
 ```bash
-GW=$(kubectl get gateway paytam-gateway -n traffic-splitting \
+GW=$(kubectl get gateway traffic-gateway -n traffic-splitting \
   -o jsonpath='{.status.addresses[0].value}')
 echo "Gateway: ${GW}"
 ```
 
-Send 10 requests:
+Test via Gateway IP (before DNS):
 
 ```bash
+# Single request
+curl -H "Host: traffic-splitting.tagent.cfd" http://${GW}
+
+# Send 10 requests — expect ~9 paytam, ~1 swiggy
 for i in $(seq 1 10); do
   echo -n "Request $i: "
-  curl -s -H "Host: tagent.cfd" http://${GW} | head -1
+  curl -s -H "Host: traffic-splitting.tagent.cfd" http://${GW} | head -1
 done
 ```
 
 Expected — roughly 9 requests to paytam (v1), 1 to swiggy (v2).
 
-Test with real domain:
+Test with real domain (after DNS + cert READY):
 
 ```bash
-curl https://tagent.cfd
+# Basic connectivity
+curl https://traffic-splitting.tagent.cfd
+
+# Send 10 requests — watch 90/10 distribution
+for i in $(seq 1 10); do
+  echo -n "Request $i: "
+  curl -s https://traffic-splitting.tagent.cfd | head -1
+done
+
+# Verbose — shows TLS handshake and certificate details
+curl -v https://traffic-splitting.tagent.cfd
+
+# Check certificate issuer
+curl -vI https://traffic-splitting.tagent.cfd 2>&1 | grep -E "issuer|subject|expire"
+```
+
+Open in browser:
+
+```
+https://traffic-splitting.tagent.cfd
 ```
 
 ---

@@ -169,7 +169,7 @@ kubectl get svc -n weighted
 kubectl get gateway -n weighted
 kubectl get httproute -n weighted
 kubectl get certificate -n weighted
-kubectl get secret cert-manager-tls -n weighted
+kubectl get secret weighted-tls -n weighted
 ```
 
 Expected pods:
@@ -189,26 +189,49 @@ paytam-v2-yyyy               1/1     Running
 Get Gateway address:
 
 ```bash
-GW=$(kubectl get gateway paytam-gateway -n weighted \
+GW=$(kubectl get gateway weighted-gateway -n weighted \
   -o jsonpath='{.status.addresses[0].value}')
 echo "Gateway: ${GW}"
 ```
 
-Send 10 requests:
+Test via Gateway IP (before DNS):
 
 ```bash
+# Single request
+curl -H "Host: weighted.tagent.cfd" http://${GW}
+
+# Send 10 requests — watch alternation between v1 and v2
 for i in $(seq 1 10); do
   echo -n "Request $i: "
-  curl -s -H "Host: tagent.cfd" http://${GW} | head -1
+  curl -s -H "Host: weighted.tagent.cfd" http://${GW} | head -1
 done
 ```
 
-Expected — roughly 5 requests to paytam, 5 to swiggy.
+Expected — roughly 5 requests to paytam (v1), 5 to swiggy (v2).
 
-Test with real domain:
+Test with real domain (after DNS + cert READY):
 
 ```bash
-curl https://tagent.cfd
+# Basic connectivity
+curl https://weighted.tagent.cfd
+
+# Send 10 requests — watch alternation
+for i in $(seq 1 10); do
+  echo -n "Request $i: "
+  curl -s https://weighted.tagent.cfd | head -1
+done
+
+# Verbose — shows TLS handshake and certificate details
+curl -v https://weighted.tagent.cfd
+
+# Check certificate issuer
+curl -vI https://weighted.tagent.cfd 2>&1 | grep -E "issuer|subject|expire"
+```
+
+Open in browser:
+
+```
+https://weighted.tagent.cfd
 ```
 
 Refresh multiple times — alternates between paytam and swiggy.

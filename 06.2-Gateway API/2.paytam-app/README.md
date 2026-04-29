@@ -2,9 +2,9 @@
 
 App: `yaswanth111/paytam:latest`
 Namespace: `paytam`
-Domain: `tagent.cfd`
+Domain: `paytam.tagent.cfd`
 Controller: Envoy Gateway (`gateway-api`)
-TLS: cert-manager + Let's Encrypt
+TLS: cert-manager + Let's Encrypt (solver label: `solver=paytam`)
 
 ---
 
@@ -221,7 +221,7 @@ kubectl get gatewayclass
 kubectl get gateway -n paytam
 kubectl get httproute -n paytam
 kubectl get certificate -n paytam
-kubectl get secret cert-manager-tls -n paytam
+kubectl get secret paytam-tls -n paytam
 ```
 
 All should show Ready/Running/True.
@@ -230,27 +230,45 @@ All should show Ready/Running/True.
 
 ## Step 6 — Test
 
-Test HTTP (redirects to HTTPS):
+Get Gateway address:
 
 ```bash
-curl -L http://tagent.cfd
+GW=$(kubectl get gateway paytam-gateway -n paytam \
+  -o jsonpath='{.status.addresses[0].value}')
+echo "Gateway: ${GW}"
 ```
 
-Test HTTPS:
+Test HTTP via Gateway IP (before DNS):
 
 ```bash
-curl https://tagent.cfd
+curl -H "Host: paytam.tagent.cfd" http://${GW}
+```
+
+Test HTTPS with real domain (after DNS + cert READY):
+
+```bash
+# Basic connectivity
+curl https://paytam.tagent.cfd
+
+# Follow redirects (HTTP → HTTPS)
+curl -L http://paytam.tagent.cfd
+
+# Verbose — shows TLS handshake and certificate details
+curl -v https://paytam.tagent.cfd
+
+# Check certificate issuer
+curl -vI https://paytam.tagent.cfd 2>&1 | grep -E "issuer|subject|expire"
 ```
 
 Open in browser:
 
 ```
-https://tagent.cfd
+https://paytam.tagent.cfd
 ```
 
-Expected: paytam app with padlock icon.
+Expected: paytam app loads with padlock icon (Let's Encrypt certificate).
 
-Test from inside cluster:
+Test from inside cluster (bypasses Gateway, hits Service directly):
 
 ```bash
 kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never \

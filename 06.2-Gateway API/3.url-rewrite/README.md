@@ -164,43 +164,60 @@ kubectl get svc -n url-rewrite
 kubectl get gateway -n url-rewrite
 kubectl get httproute -n url-rewrite
 kubectl get certificate -n url-rewrite
-kubectl get secret cert-manager-tls -n url-rewrite
+kubectl get secret url-rewrite-tls -n url-rewrite
 ```
 
 ## Test URL Rewrite
 
-
 Get Gateway address:
 
 ```bash
-GW=$(kubectl get gateway paytam-gateway -n url-rewrite \
+GW=$(kubectl get gateway url-rewrite-gateway -n url-rewrite \
   -o jsonpath='{.status.addresses[0].value}')
 echo "Gateway: ${GW}"
 ```
 
-Test each rewrite rule:
+Test each rewrite rule via Gateway IP (before DNS):
 
 ```bash
 # Rule 1: /app → pod gets /
-curl -H "Host: tagent.cfd" http://${GW}/app
+curl -H "Host: url-rewrite.tagent.cfd" http://${GW}/app
 
 # Rule 2: /paytam → pod gets /
-curl -H "Host: tagent.cfd" http://${GW}/paytam
+curl -H "Host: url-rewrite.tagent.cfd" http://${GW}/paytam
 
 # Rule 3: /api/v1/users → pod gets /api/users
-curl -H "Host: tagent.cfd" http://${GW}/api/v1/users
+curl -H "Host: url-rewrite.tagent.cfd" http://${GW}/api/v1/users
 
 # Rule 4: /health → pod gets /health (no rewrite)
-curl -H "Host: tagent.cfd" http://${GW}/health
+curl -H "Host: url-rewrite.tagent.cfd" http://${GW}/health
 ```
 
-Test with real domain (after DNS + cert):
+Test with real domain (after DNS + cert READY):
 
 ```bash
-curl https://tagent.cfd/app
-curl https://tagent.cfd/paytam
-curl https://tagent.cfd/api/v1/users
-curl https://tagent.cfd/health
+# Basic connectivity
+curl https://url-rewrite.tagent.cfd
+
+# Test each rewrite rule
+curl https://url-rewrite.tagent.cfd/app
+curl https://url-rewrite.tagent.cfd/paytam
+curl https://url-rewrite.tagent.cfd/api/v1/users
+curl https://url-rewrite.tagent.cfd/health
+
+# Verbose — shows TLS handshake and certificate details
+curl -v https://url-rewrite.tagent.cfd
+
+# Check certificate issuer
+curl -vI https://url-rewrite.tagent.cfd 2>&1 | grep -E "issuer|subject|expire"
+```
+
+Open in browser:
+
+```
+https://url-rewrite.tagent.cfd
+https://url-rewrite.tagent.cfd/app
+https://url-rewrite.tagent.cfd/paytam
 ```
 
 Verify pod receives rewritten URL — check pod logs:
