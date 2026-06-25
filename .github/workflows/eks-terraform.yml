@@ -511,6 +511,15 @@ jobs:
             --query "SecurityGroups[?GroupName!='default'].GroupId" --output text 2>/dev/null || echo "")
 
           if [ -n "$SGS" ] && [ "$SGS" != "None" ]; then
+            # First remove all ingress/egress rules referencing other SGs (dependency loop)
+            echo "$SGS" | tr '\t' '\n' | while read -r sg; do
+              [ -z "$sg" ] && continue
+              aws ec2 revoke-security-group-ingress --region "${{ env.AWS_REGION_VALUE }}" --group-id "$sg" \
+                --ip-permissions "$(aws ec2 describe-security-groups --region "${{ env.AWS_REGION_VALUE }}" --group-ids "$sg" --query 'SecurityGroups[0].IpPermissions' --output json 2>/dev/null)" 2>/dev/null || true
+              aws ec2 revoke-security-group-egress --region "${{ env.AWS_REGION_VALUE }}" --group-id "$sg" \
+                --ip-permissions "$(aws ec2 describe-security-groups --region "${{ env.AWS_REGION_VALUE }}" --group-ids "$sg" --query 'SecurityGroups[0].IpPermissionsEgress' --output json 2>/dev/null)" 2>/dev/null || true
+            done
+            # Now delete them
             echo "$SGS" | tr '\t' '\n' | while read -r sg; do
               [ -z "$sg" ] && continue
               echo "  Deleting SG: $sg"
@@ -518,6 +527,98 @@ jobs:
             done
           else
             echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete Non-Default VPCs
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for non-default VPCs..."
+          VPCS=$(aws ec2 describe-vpcs --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'Vpcs[?IsDefault==`false`].VpcId' --output text 2>/dev/null || echo "")
+
+          if [ -n "$VPCS" ] && [ "$VPCS" != "None" ]; then
+            echo "$VPCS" | tr '\t' '\n' | while read -r vpc; do
+              [ -z "$vpc" ] && continue
+              echo "  Processing VPC: $vpc"
+
+              # Delete subnets
+              aws ec2 describe-subnets --region "${{ env.AWS_REGION_VALUE }}" \
+                --filters "Name=vpc-id,Values=$vpc" --query 'Subnets[].SubnetId' --output text 2>/dev/null | \
+                tr '\t' '\n' | while read -r sub; do
+                  [ -z "$sub" ] && continue
+                  aws ec2 delete-subnet --region "${{ env.AWS_REGION_VALUE }}" --subnet-id "$sub" || true
+                done
+
+              # Detach and delete internet gateways
+              aws ec2 describe-internet-gateways --region "${{ env.AWS_REGION_VALUE }}" \
+                --filters "Name=attachment.vpc-id,Values=$vpc" --query 'InternetGateways[].InternetGatewayId' --output text 2>/dev/null | \
+                tr '\t' '\n' | while read -r igw; do
+                  [ -z "$igw" ] && continue
+                  aws ec2 detach-internet-gateway --region "${{ env.AWS_REGION_VALUE }}" --internet-gateway-id "$igw" --vpc-id "$vpc" || true
+                  aws ec2 delete-internet-gateway --region "${{ env.AWS_REGION_VALUE }}" --internet-gateway-id "$igw" || true
+                done
+
+              # Delete route tables (non-main)
+              aws ec2 describe-route-tables --region "${{ env.AWS_REGION_VALUE }}" \
+                --filters "Name=vpc-id,Values=$vpc" --query 'RouteTables[?Associations[0].Main!=`true`].RouteTableId' --output text 2>/dev/null | \
+                tr '\t' '\n' | while read -r rt; do
+                  [ -z "$rt" ] && continue
+                  aws ec2 delete-route-table --region "${{ env.AWS_REGION_VALUE }}" --route-table-id "$rt" || true
+                done
+
+              # Delete network interfaces
+              aws ec2 describe-network-interfaces --region "${{ env.AWS_REGION_VALUE }}" \
+                --filters "Name=vpc-id,Values=$vpc" --query 'NetworkInterfaces[].NetworkInterfaceId' --output text 2>/dev/null | \
+                tr '\t' '\n' | while read -r eni; do
+                  [ -z "$eni" ] && continue
+                  aws ec2 delete-network-interface --region "${{ env.AWS_REGION_VALUE }}" --network-interface-id "$eni" || true
+                done
+
+              # Delete VPC security groups (non-default)
+              aws ec2 describe-security-groups --region "${{ env.AWS_REGION_VALUE }}" \
+                --filters "Name=vpc-id,Values=$vpc" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text 2>/dev/null | \
+                tr '\t' '\n' | while read -r sg; do
+                  [ -z "$sg" ] && continue
+                  aws ec2 delete-security-group --region "${{ env.AWS_REGION_VALUE }}" --group-id "$sg" || true
+                done
+
+              # Delete VPC
+              aws ec2 delete-vpc --region "${{ env.AWS_REGION_VALUE }}" --vpc-id "$vpc" || true
+              echo "  Deleted VPC: $vpc"
+            done
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete CloudWatch Log Groups (EKS)
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for EKS-related CloudWatch Log Groups..."
+          LOG_GROUPS=$(aws logs describe-log-groups --region "${{ env.AWS_REGION_VALUE }}" \
+            --log-group-name-prefix "/aws/eks" \
+            --query 'logGroups[].logGroupName' --output text 2>/dev/null || echo "")
+
+          if [ -n "$LOG_GROUPS" ] && [ "$LOG_GROUPS" != "None" ]; then
+            echo "$LOG_GROUPS" | tr '\t' '\n' | while read -r lg; do
+              [ -z "$lg" ] && continue
+              echo "  Deleting log group: $lg"
+              aws logs delete-log-group --region "${{ env.AWS_REGION_VALUE }}" --log-group-name "$lg" || true
+            done
+          else
+            echo "  None found."
+          fi
+
+          # Also delete ALB controller log groups
+          ALB_LOGS=$(aws logs describe-log-groups --region "${{ env.AWS_REGION_VALUE }}" \
+            --log-group-name-prefix "/aws/elb" \
+            --query 'logGroups[].logGroupName' --output text 2>/dev/null || echo "")
+
+          if [ -n "$ALB_LOGS" ] && [ "$ALB_LOGS" != "None" ]; then
+            echo "$ALB_LOGS" | tr '\t' '\n' | while read -r lg; do
+              [ -z "$lg" ] && continue
+              echo "  Deleting log group: $lg"
+              aws logs delete-log-group --region "${{ env.AWS_REGION_VALUE }}" --log-group-name "$lg" || true
+            done
           fi
 
       - name: Post-Destroy — Final Verification
@@ -558,6 +659,21 @@ jobs:
           echo "--- EKS Clusters ---"
           aws eks list-clusters --region "${{ env.AWS_REGION_VALUE }}" --output text 2>/dev/null || echo "None"
 
+          echo ""
+          echo "--- Non-Default VPCs ---"
+          aws ec2 describe-vpcs --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'Vpcs[?IsDefault==`false`].[VpcId,CidrBlock]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- EBS Snapshots ---"
+          aws ec2 describe-snapshots --region "${{ env.AWS_REGION_VALUE }}" --owner-ids self \
+            --query 'Snapshots[].[SnapshotId,VolumeSize]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "=============================================="
+          echo "If all tables above show 'None' or empty — your bill is $0"
+          echo "=============================================="
+
       - name: Destroy Summary
         if: github.event.inputs.action == 'destroy'
         run: |
@@ -593,6 +709,8 @@ jobs:
             echo "| Orphaned NAT Gateways | Deleted |"
             echo "| EBS Snapshots | Deleted |"
             echo "| Orphaned Security Groups | Deleted |"
+            echo "| Non-Default VPCs (subnets, IGW, routes, ENIs) | Deleted |"
+            echo "| CloudWatch Log Groups (EKS/ELB) | Deleted |"
             echo ""
             echo "---"
             echo ""
