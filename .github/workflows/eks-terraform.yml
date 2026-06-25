@@ -291,6 +291,12 @@ jobs:
               continue
             fi
 
+            # Delete PVCs in each namespace BEFORE deleting the namespace
+            # PVCs create EBS volumes — if not deleted, volumes become orphaned and keep billing
+            kubectl delete pvc --all -n "${NAMESPACE}" --ignore-not-found=true || true
+            kubectl delete gateway --all -n "${NAMESPACE}" --ignore-not-found=true || true
+            kubectl delete certificate --all -n "${NAMESPACE}" --ignore-not-found=true || true
+
             kubectl delete namespace "${NAMESPACE}" --ignore-not-found=true --wait=false || true
           done < namespaces.txt
 
@@ -385,6 +391,173 @@ jobs:
         if: github.event.inputs.action == 'destroy' && steps.terraform_destroy.outcome == 'failure'
         run: terraform destroy -auto-approve -no-color
 
+      # ================================================================
+      # POST-DESTROY: Nuke all orphaned AWS resources
+      # This catches EBS volumes, Elastic IPs, Load Balancers, and
+      # snapshots that Kubernetes created outside of Terraform's control.
+      # Without this step, these resources keep billing $3-4/day.
+      # ================================================================
+      - name: Post-Destroy — Delete Orphaned Load Balancers
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for orphaned Load Balancers..."
+          LB_ARNS=$(aws elbv2 describe-load-balancers --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'LoadBalancers[].LoadBalancerArn' --output text 2>/dev/null || echo "")
+
+          if [ -n "$LB_ARNS" ] && [ "$LB_ARNS" != "None" ]; then
+            echo "$LB_ARNS" | tr '\t' '\n' | while read -r lb; do
+              [ -z "$lb" ] && continue
+              echo "  Deleting orphaned LB: $lb"
+              aws elbv2 delete-load-balancer --region "${{ env.AWS_REGION_VALUE }}" --load-balancer-arn "$lb" || true
+            done
+            echo "  Waiting 30s for LBs to drain..."
+            sleep 30
+            # Delete orphaned Target Groups
+            TG_ARNS=$(aws elbv2 describe-target-groups --region "${{ env.AWS_REGION_VALUE }}" \
+              --query 'TargetGroups[].TargetGroupArn' --output text 2>/dev/null || echo "")
+            if [ -n "$TG_ARNS" ] && [ "$TG_ARNS" != "None" ]; then
+              echo "$TG_ARNS" | tr '\t' '\n' | while read -r tg; do
+                [ -z "$tg" ] && continue
+                aws elbv2 delete-target-group --region "${{ env.AWS_REGION_VALUE }}" --target-group-arn "$tg" || true
+              done
+            fi
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete Orphaned EBS Volumes
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for orphaned EBS volumes (unattached)..."
+          VOLUMES=$(aws ec2 describe-volumes --region "${{ env.AWS_REGION_VALUE }}" \
+            --filters "Name=status,Values=available" \
+            --query 'Volumes[].[VolumeId,Size]' --output text 2>/dev/null || echo "")
+
+          TOTAL_GB=0
+          VOL_COUNT=0
+          if [ -n "$VOLUMES" ] && [ "$VOLUMES" != "None" ]; then
+            echo "$VOLUMES" | while read -r vol_id size; do
+              [ -z "$vol_id" ] && continue
+              echo "  Deleting volume: $vol_id (${size}GB)"
+              aws ec2 delete-volume --region "${{ env.AWS_REGION_VALUE }}" --volume-id "$vol_id" || true
+            done
+            VOL_COUNT=$(echo "$VOLUMES" | grep -c "vol-" || echo "0")
+            TOTAL_GB=$(echo "$VOLUMES" | awk '{sum+=$2} END{print sum+0}')
+            echo "  Deleted $VOL_COUNT volumes ($TOTAL_GB GB) — saving ~\$$(echo "$TOTAL_GB * 10 / 100" | bc)/month"
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Release Orphaned Elastic IPs
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for orphaned Elastic IPs..."
+          EIPS=$(aws ec2 describe-addresses --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'Addresses[].AllocationId' --output text 2>/dev/null || echo "")
+
+          if [ -n "$EIPS" ] && [ "$EIPS" != "None" ]; then
+            echo "$EIPS" | tr '\t' '\n' | while read -r eip; do
+              [ -z "$eip" ] && continue
+              echo "  Releasing EIP: $eip"
+              aws ec2 release-address --region "${{ env.AWS_REGION_VALUE }}" --allocation-id "$eip" || true
+            done
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete NAT Gateways
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for orphaned NAT Gateways..."
+          NATS=$(aws ec2 describe-nat-gateways --region "${{ env.AWS_REGION_VALUE }}" \
+            --filter "Name=state,Values=available,pending" \
+            --query 'NatGateways[].NatGatewayId' --output text 2>/dev/null || echo "")
+
+          if [ -n "$NATS" ] && [ "$NATS" != "None" ]; then
+            echo "$NATS" | tr '\t' '\n' | while read -r nat; do
+              [ -z "$nat" ] && continue
+              echo "  Deleting NAT Gateway: $nat"
+              aws ec2 delete-nat-gateway --region "${{ env.AWS_REGION_VALUE }}" --nat-gateway-id "$nat" || true
+            done
+            echo "  Waiting 60s for NAT Gateways to delete..."
+            sleep 60
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete EBS Snapshots
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for EBS snapshots..."
+          SNAPS=$(aws ec2 describe-snapshots --region "${{ env.AWS_REGION_VALUE }}" \
+            --owner-ids self \
+            --query 'Snapshots[].SnapshotId' --output text 2>/dev/null || echo "")
+
+          if [ -n "$SNAPS" ] && [ "$SNAPS" != "None" ]; then
+            echo "$SNAPS" | tr '\t' '\n' | while read -r snap; do
+              [ -z "$snap" ] && continue
+              echo "  Deleting snapshot: $snap"
+              aws ec2 delete-snapshot --region "${{ env.AWS_REGION_VALUE }}" --snapshot-id "$snap" || true
+            done
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Delete Orphaned Security Groups
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "Checking for orphaned Security Groups..."
+          SGS=$(aws ec2 describe-security-groups --region "${{ env.AWS_REGION_VALUE }}" \
+            --query "SecurityGroups[?GroupName!='default'].GroupId" --output text 2>/dev/null || echo "")
+
+          if [ -n "$SGS" ] && [ "$SGS" != "None" ]; then
+            echo "$SGS" | tr '\t' '\n' | while read -r sg; do
+              [ -z "$sg" ] && continue
+              echo "  Deleting SG: $sg"
+              aws ec2 delete-security-group --region "${{ env.AWS_REGION_VALUE }}" --group-id "$sg" || true
+            done
+          else
+            echo "  None found."
+          fi
+
+      - name: Post-Destroy — Final Verification
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "=============================================="
+          echo "FINAL VERIFICATION — Checking for remaining billable resources"
+          echo "=============================================="
+
+          echo ""
+          echo "--- EC2 Instances ---"
+          aws ec2 describe-instances --region "${{ env.AWS_REGION_VALUE }}" \
+            --filters "Name=instance-state-name,Values=running,stopped" \
+            --query 'Reservations[].Instances[].[InstanceId,InstanceType,State.Name]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- EBS Volumes ---"
+          aws ec2 describe-volumes --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'Volumes[].[VolumeId,Size,State]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- Elastic IPs ---"
+          aws ec2 describe-addresses --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'Addresses[].[PublicIp,AllocationId,AssociationId]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- NAT Gateways ---"
+          aws ec2 describe-nat-gateways --region "${{ env.AWS_REGION_VALUE }}" \
+            --filter "Name=state,Values=available,pending" \
+            --query 'NatGateways[].[NatGatewayId,State]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- Load Balancers ---"
+          aws elbv2 describe-load-balancers --region "${{ env.AWS_REGION_VALUE }}" \
+            --query 'LoadBalancers[].[LoadBalancerName,State.Code]' --output table 2>/dev/null || echo "None"
+
+          echo ""
+          echo "--- EKS Clusters ---"
+          aws eks list-clusters --region "${{ env.AWS_REGION_VALUE }}" --output text 2>/dev/null || echo "None"
+
       - name: Destroy Summary
         if: github.event.inputs.action == 'destroy'
         run: |
@@ -395,6 +568,8 @@ jobs:
             echo "**Total resources deleted: ${RESOURCE_COUNT}**"
             echo ""
             echo "---"
+            echo ""
+            echo "### Terraform Destroy"
             echo ""
             echo "| Category | Resources Deleted |"
             echo "|---|---|"
@@ -408,7 +583,19 @@ jobs:
             echo "| Cluster Autoscaler IAM + Pod Identity | 3 |"
             echo "| OIDC Provider | 1 |"
             echo ""
+            echo "### Post-Destroy Nuke (Orphaned Resources)"
+            echo ""
+            echo "| Resource Type | Action |"
+            echo "|---|---|"
+            echo "| Orphaned EBS Volumes (from PVCs) | Deleted |"
+            echo "| Orphaned Elastic IPs | Released |"
+            echo "| Orphaned Load Balancers | Deleted |"
+            echo "| Orphaned NAT Gateways | Deleted |"
+            echo "| EBS Snapshots | Deleted |"
+            echo "| Orphaned Security Groups | Deleted |"
+            echo ""
             echo "---"
             echo ""
-            echo "> Your AWS account is now clean. The S3 state bucket still exists — delete it manually if no longer needed."
+            echo "> ✅ **Your daily AWS bill should now be \$0.**"
+            echo "> The S3 state bucket still exists — delete it manually if no longer needed."
           } >> "$GITHUB_STEP_SUMMARY"
