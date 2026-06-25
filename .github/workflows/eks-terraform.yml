@@ -185,54 +185,85 @@ jobs:
       - name: Cluster Connection Summary
         if: github.event.inputs.action == 'apply'
         run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name)
+          REGION="${{ env.AWS_REGION_VALUE }}"
           RESOURCE_COUNT=$(terraform show -json | jq '[.values.root_module.resources | length] | add // 0')
+
+          # Connect to cluster for node count
+          aws eks update-kubeconfig --region $REGION --name $CLUSTER_NAME 2>/dev/null || true
+
+          # Count real AWS resources created
+          EC2_COUNT=$(aws ec2 describe-instances --region $REGION \
+            --filters "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' --output text 2>/dev/null | wc -w || echo "0")
+          VOL_COUNT=$(aws ec2 describe-volumes --region $REGION \
+            --filters "Name=status,Values=in-use,available" \
+            --query 'Volumes[].VolumeId' --output text 2>/dev/null | wc -w || echo "0")
+          VOL_TOTAL_GB=$(aws ec2 describe-volumes --region $REGION \
+            --filters "Name=status,Values=in-use,available" \
+            --query 'Volumes[].Size' --output text 2>/dev/null | tr '\t' '\n' | awk '{sum+=$1} END{print sum+0}')
+          EIP_COUNT=$(aws ec2 describe-addresses --region $REGION \
+            --query 'Addresses[].AllocationId' --output text 2>/dev/null | wc -w || echo "0")
+          NAT_COUNT=$(aws ec2 describe-nat-gateways --region $REGION \
+            --filter "Name=state,Values=available" \
+            --query 'NatGateways[].NatGatewayId' --output text 2>/dev/null | wc -w || echo "0")
+          LB_COUNT=$(aws elbv2 describe-load-balancers --region $REGION \
+            --query 'LoadBalancers[].LoadBalancerArn' --output text 2>/dev/null | wc -w || echo "0")
+          SG_COUNT=$(aws ec2 describe-security-groups --region $REGION \
+            --query "SecurityGroups[?GroupName!='default'].GroupId" --output text 2>/dev/null | wc -w || echo "0")
+          SUBNET_COUNT=$(aws ec2 describe-subnets --region $REGION \
+            --filters "Name=vpc-id,Values=$(terraform output -raw vpc_id 2>/dev/null || echo 'none')" \
+            --query 'Subnets[].SubnetId' --output text 2>/dev/null | wc -w || echo "0")
+          NODE_COUNT=$(kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0")
+
+          # Estimate daily cost
+          # t3.medium = $1.01/day, t2.medium = $1.12/day, NAT = $1.08/day, EIP = $0.12/day, EBS = $0.003/GB/day
+          DAILY_COST=$(echo "scale=2; ($EC2_COUNT * 1.12) + ($NAT_COUNT * 1.08) + ($EIP_COUNT * 0.12) + ($VOL_TOTAL_GB * 0.003) + ($LB_COUNT * 0.54)" | bc)
+          MONTHLY_COST=$(echo "scale=2; $DAILY_COST * 30" | bc)
+
           {
-            echo "## 🎉 Congratulations! Your Kubernetes Cluster Is Ready"
-            echo ""
-            echo "**Total resources created: ${RESOURCE_COUNT}**"
+            echo "## 🎉 Your Kubernetes Cluster Is Ready"
             echo ""
             echo "---"
             echo ""
-            echo "## How To Connect To Your Cluster After Deployment"
+            echo "### 📊 Resources Created (Real-Time AWS Data)"
             echo ""
-            echo "Your current cluster name in this Terraform is:"
+            echo "| Resource Type | Count | Details |"
+            echo "|---|---|---|"
+            echo "| Terraform Resources | ${RESOURCE_COUNT} | Total managed by Terraform |"
+            echo "| EC2 Instances | ${EC2_COUNT} | Running instances (nodes + jump box) |"
+            echo "| EKS Worker Nodes | ${NODE_COUNT} | In cluster ${CLUSTER_NAME} |"
+            echo "| EBS Volumes | ${VOL_COUNT} | Total ${VOL_TOTAL_GB} GB |"
+            echo "| Elastic IPs | ${EIP_COUNT} | For NAT Gateway |"
+            echo "| NAT Gateways | ${NAT_COUNT} | Private subnet internet access |"
+            echo "| Load Balancers | ${LB_COUNT} | ALB/NLB |"
+            echo "| Security Groups | ${SG_COUNT} | Non-default SGs |"
+            echo "| Subnets | ${SUBNET_COUNT} | In EKS VPC |"
             echo ""
-            echo "\`eksprod\`"
+            echo "### 💰 Estimated Cost While Running"
             echo ""
-            echo "Your current region in this Terraform is:"
+            echo "| Period | Estimated Cost |"
+            echo "|---|---|"
+            echo "| Per Hour | \$$(echo "scale=2; $DAILY_COST / 24" | bc) |"
+            echo "| Per Day | \$${DAILY_COST} |"
+            echo "| Per Month (if left running) | \$${MONTHLY_COST} |"
             echo ""
-            echo "\`us-east-1\`"
+            echo "> ⚠️ **IMPORTANT**: Destroy the cluster when you're done practicing to avoid charges!"
             echo ""
-            echo "Update kubeconfig:"
+            echo "---"
+            echo ""
+            echo "### 🔌 Connect To Your Cluster"
             echo ""
             echo "\`\`\`bash"
-            echo "aws eks update-kubeconfig --region us-east-1 --name eksprod"
-            echo "\`\`\`"
-            echo ""
-            echo "Check nodes:"
-            echo ""
-            echo "\`\`\`bash"
+            echo "aws eks update-kubeconfig --region ${REGION} --name ${CLUSTER_NAME}"
             echo "kubectl get nodes"
-            echo "\`\`\`"
-            echo ""
-            echo "Check all pods:"
-            echo ""
-            echo "\`\`\`bash"
             echo "kubectl get pods -A"
             echo "\`\`\`"
             echo ""
-            echo "Check services:"
+            echo "---"
             echo ""
-            echo "\`\`\`bash"
-            echo "kubectl get svc -A"
-            echo "\`\`\`"
-            echo ""
-            echo "Check Cluster Autoscaler:"
-            echo ""
-            echo "\`\`\`bash"
-            echo "kubectl get pods -n kube-system | grep cluster-autoscaler"
-            echo "kubectl logs -n kube-system deployment/cluster-autoscaler-aws-cluster-autoscaler --tail=50"
-            echo "\`\`\`"
+            echo "> When you're done → Run this workflow again with **destroy** + confirm **yes**"
+            echo "> Everything will be deleted automatically. Bill becomes \$0."
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Uninstall Helm releases before destroy so their AWS resources (LBs, etc.) are cleaned up first.
@@ -677,43 +708,65 @@ jobs:
       - name: Destroy Summary
         if: github.event.inputs.action == 'destroy'
         run: |
+          REGION="${{ env.AWS_REGION_VALUE }}"
           RESOURCE_COUNT=$(cat resource-count.txt 2>/dev/null || echo "0")
+
+          # Count what's STILL remaining (should all be 0)
+          REMAINING_EC2=$(aws ec2 describe-instances --region $REGION \
+            --filters "Name=instance-state-name,Values=running,stopped" \
+            --query 'Reservations[].Instances[].InstanceId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_VOLS=$(aws ec2 describe-volumes --region $REGION \
+            --query 'Volumes[].VolumeId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_EIPS=$(aws ec2 describe-addresses --region $REGION \
+            --query 'Addresses[].AllocationId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_NATS=$(aws ec2 describe-nat-gateways --region $REGION \
+            --filter "Name=state,Values=available,pending" \
+            --query 'NatGateways[].NatGatewayId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_LBS=$(aws elbv2 describe-load-balancers --region $REGION \
+            --query 'LoadBalancers[].LoadBalancerArn' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_VPCS=$(aws ec2 describe-vpcs --region $REGION \
+            --query 'Vpcs[?IsDefault==`false`].VpcId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_SNAPS=$(aws ec2 describe-snapshots --region $REGION --owner-ids self \
+            --query 'Snapshots[].SnapshotId' --output text 2>/dev/null | wc -w || echo "0")
+          REMAINING_EKS=$(aws eks list-clusters --region $REGION \
+            --query 'clusters' --output text 2>/dev/null | wc -w || echo "0")
+
+          TOTAL_REMAINING=$((REMAINING_EC2 + REMAINING_VOLS + REMAINING_EIPS + REMAINING_NATS + REMAINING_LBS + REMAINING_VPCS + REMAINING_SNAPS + REMAINING_EKS))
+
+          if [ "$TOTAL_REMAINING" -eq 0 ]; then
+            BILL_STATUS="✅ **Your daily AWS bill is now \$0.** Nothing billable remains."
+          else
+            BILL_STATUS="⚠️ **Some resources still remain (${TOTAL_REMAINING} total).** Check the verification step above for details."
+          fi
+
           {
-            echo "## 🗑️ Congratulations! Your Entire Kubernetes Cluster Is Deleted"
+            echo "## 🗑️ Infrastructure Destroyed — Real-Time Status"
             echo ""
-            echo "**Total resources deleted: ${RESOURCE_COUNT}**"
-            echo ""
-            echo "---"
-            echo ""
-            echo "### Terraform Destroy"
-            echo ""
-            echo "| Category | Resources Deleted |"
-            echo "|---|---|"
-            echo "| VPC, Subnets, IGW, NAT, EIP, Route Tables, SG | 15 |"
-            echo "| EKS Cluster, Node Group, Launch Template, ASG Tags | 6 |"
-            echo "| EKS Addons (vpc-cni, coredns, kube-proxy, pod-identity, ebs-csi) | 5 |"
-            echo "| EKS Access Entries + Policy Associations | 2 |"
-            echo "| IAM Roles, Policies, Attachments, Instance Profile | 15 |"
-            echo "| Pod Identity Associations | 2 |"
-            echo "| EC2 Jump Box | 1 |"
-            echo "| Cluster Autoscaler IAM + Pod Identity | 3 |"
-            echo "| OIDC Provider | 1 |"
-            echo ""
-            echo "### Post-Destroy Nuke (Orphaned Resources)"
-            echo ""
-            echo "| Resource Type | Action |"
-            echo "|---|---|"
-            echo "| Orphaned EBS Volumes (from PVCs) | Deleted |"
-            echo "| Orphaned Elastic IPs | Released |"
-            echo "| Orphaned Load Balancers | Deleted |"
-            echo "| Orphaned NAT Gateways | Deleted |"
-            echo "| EBS Snapshots | Deleted |"
-            echo "| Orphaned Security Groups | Deleted |"
-            echo "| Non-Default VPCs (subnets, IGW, routes, ENIs) | Deleted |"
-            echo "| CloudWatch Log Groups (EKS/ELB) | Deleted |"
+            echo "**Terraform resources destroyed: ${RESOURCE_COUNT}**"
             echo ""
             echo "---"
             echo ""
-            echo "> ✅ **Your daily AWS bill should now be \$0.**"
-            echo "> The S3 state bucket still exists — delete it manually if no longer needed."
+            echo "### 📊 Remaining AWS Resources After Destroy (Real-Time Check)"
+            echo ""
+            echo "| Resource Type | Remaining | Status |"
+            echo "|---|---|---|"
+            echo "| EC2 Instances | ${REMAINING_EC2} | $([ $REMAINING_EC2 -eq 0 ] && echo '✅ Clean' || echo '❌ Still running') |"
+            echo "| EBS Volumes | ${REMAINING_VOLS} | $([ $REMAINING_VOLS -eq 0 ] && echo '✅ Clean' || echo '❌ Still exists') |"
+            echo "| Elastic IPs | ${REMAINING_EIPS} | $([ $REMAINING_EIPS -eq 0 ] && echo '✅ Clean' || echo '❌ Still allocated') |"
+            echo "| NAT Gateways | ${REMAINING_NATS} | $([ $REMAINING_NATS -eq 0 ] && echo '✅ Clean' || echo '❌ Still running') |"
+            echo "| Load Balancers | ${REMAINING_LBS} | $([ $REMAINING_LBS -eq 0 ] && echo '✅ Clean' || echo '❌ Still running') |"
+            echo "| Non-Default VPCs | ${REMAINING_VPCS} | $([ $REMAINING_VPCS -eq 0 ] && echo '✅ Clean' || echo '❌ Still exists') |"
+            echo "| EBS Snapshots | ${REMAINING_SNAPS} | $([ $REMAINING_SNAPS -eq 0 ] && echo '✅ Clean' || echo '❌ Still exists') |"
+            echo "| EKS Clusters | ${REMAINING_EKS} | $([ $REMAINING_EKS -eq 0 ] && echo '✅ Clean' || echo '❌ Still running') |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### 💰 Billing Status"
+            echo ""
+            echo "${BILL_STATUS}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> The S3 state bucket still exists (needed for next apply). It costs < \$0.01/month."
+            echo "> To recreate everything: Run this workflow → select **apply**."
           } >> "$GITHUB_STEP_SUMMARY"
