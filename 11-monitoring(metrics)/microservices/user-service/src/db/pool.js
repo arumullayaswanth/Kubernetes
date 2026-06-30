@@ -24,8 +24,8 @@ export async function initDb() {
     BEGIN
       NEW.updated_at = NOW();
       RETURN NEW;
-    };
-    $$ language 'plpgsql';
+    END;
+    $$ LANGUAGE plpgsql;
   `);
 
   await pool.query(`
