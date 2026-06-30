@@ -1,26 +1,22 @@
 # DevOps Demo Microservices Platform
 
-Production-style demo platform with four services, containerized local development, Kubernetes manifests, Prometheus, Grafana, and Alertmanager Slack notifications.
+Production-style demo platform with four services deployed on EKS with Prometheus, Grafana, and Alertmanager.
 
 ## Project Structure
 
 ```text
 .
 |-- microservices
-|   |-- user-service
-|   |-- order-service
-|   |-- payment-service
-|   `-- frontend
+|   |-- user-service      (Node.js + distroless)
+|   |-- order-service     (Python FastAPI)
+|   |-- payment-service   (Go + distroless)
+|   `-- frontend          (React + NGINX)
 |-- k8s
-|   |-- base
-|   `-- monitoring
-|-- monitoring
-|   |-- prometheus
-|   |-- alertmanager
-|   `-- grafana
+|   |-- base              (app manifests + kustomization.yaml)
+|   `-- monitoring        (prometheus, grafana, alertmanager)
 |-- scripts
 |   `-- load-ramp.sh
-|-- docker-compose.yml
+|-- DEPLOY.md
 `-- README.md
 ```
 
@@ -33,93 +29,46 @@ Production-style demo platform with four services, containerized local developme
 
 ## Key DevOps Decisions
 
-- Shared correlation IDs use the `x-correlation-id` header and are propagated across services.
-- Structured JSON logs are emitted by each backend for centralized logging pipelines.
-- All backend services expose `/metrics` and a pair of readiness/liveness endpoints.
-- Config is externalized through environment variables, Kubernetes `ConfigMap`s, and `Secret`s.
-- Prometheus and Grafana use repo-managed config for repeatable bootstrap.
-- Alertmanager Slack config is shipped with a webhook placeholder and environment expansion enabled.
+- Multi-stage Dockerfiles with distroless/minimal final images (7MB–80MB)
+- Non-root containers across all services
+- Shared correlation IDs use the `x-correlation-id` header and are propagated across services
+- Structured JSON logs are emitted by each backend for centralized logging pipelines
+- All backend services expose `/metrics` and readiness/liveness endpoints
+- Config is externalized through Kubernetes `ConfigMap`s and `Secret`s
+- Prometheus and Grafana use repo-managed config for repeatable bootstrap
+- Alertmanager Slack config uses `--config.expand-env` for secret injection
 
-## Local Run With Docker Compose
+## Deployment (EKS)
 
-1. Copy `.env.example` to `.env` if you want to override defaults.
-2. Start the stack:
+See **[DEPLOY.md](DEPLOY.md)** for full step-by-step guide.
 
-```bash
-docker compose up --build
-```
-
-3. Open the applications:
-
-- Frontend: `http://localhost:8081`
-- User API: `http://localhost:3000/api/users`
-- Order API: `http://localhost:8000/api/orders`
-- Payment API: `http://localhost:8080/api/payments`
-- Prometheus: `http://localhost:9090`
-- Alertmanager: `http://localhost:9093`
-- Grafana: `http://localhost:3001`
-
-4. Default Grafana credentials:
-
-- Username: `admin`
-- Password: `admin123`
-
-## Kubernetes Deployment
-
-### 1. Build Images
-
-Build and tag the four app images so your cluster can access them:
+Quick version:
 
 ```bash
-docker build -t user-service:latest ./microservices/user-service
-docker build -t order-service:latest ./microservices/order-service
-docker build -t payment-service:latest ./microservices/payment-service
-docker build -t frontend:latest ./microservices/frontend
+# Deploy app
+kubectl apply -k k8s/base/
+
+# Deploy monitoring
+kubectl apply -k k8s/monitoring/
+
+# Get URLs
+kubectl get svc -n devops-demo
 ```
 
-If you use `kind`, load them with:
+## Access the Stack
 
-```bash
-kind load docker-image user-service:latest order-service:latest payment-service:latest frontend:latest
-```
-
-### 2. Apply Base Workloads
-
-```bash
-kubectl apply -f k8s/base/namespace.yaml
-kubectl apply -f k8s/base/configmap.yaml
-kubectl apply -f k8s/base/secrets.yaml
-kubectl apply -f k8s/base/postgres.yaml
-kubectl apply -f k8s/base/redis.yaml
-kubectl apply -f k8s/base/user-service.yaml
-kubectl apply -f k8s/base/order-service.yaml
-kubectl apply -f k8s/base/payment-service.yaml
-kubectl apply -f k8s/base/frontend.yaml
-```
-
-### 3. Apply Monitoring
-
-```bash
-kubectl apply -f k8s/monitoring/alertmanager.yaml
-kubectl apply -f k8s/monitoring/prometheus.yaml
-kubectl apply -f k8s/monitoring/grafana.yaml
-```
-
-### 4. Access the Stack
-
-Then open:
-
-- Frontend through `LoadBalancer`: `http://EXTERNAL-IP`
-- Grafana through `LoadBalancer` or `kubectl port-forward -n devops-demo svc/grafana 3000:3000`
-- Prometheus via `kubectl port-forward -n devops-demo svc/prometheus 9090:9090`
+- Frontend: `http://<frontend-EXTERNAL-IP>`
+- Grafana: `http://<grafana-EXTERNAL-IP>:3000` (admin / admin123)
+- Prometheus: `kubectl port-forward -n devops-demo svc/prometheus 9090:9090`
+- Alertmanager: `kubectl port-forward -n devops-demo svc/alertmanager 9093:9093`
 
 ## Monitoring and Alerting
 
-- Prometheus scrape config is in `monitoring/prometheus/prometheus.yml`.
-- Alert rules are in `monitoring/prometheus/alerts.yml`.
-- Alertmanager Slack routing is in `monitoring/alertmanager/alertmanager.yml`.
-- Grafana provisioning is in `monitoring/grafana/provisioning/datasources/datasource.yml` and `monitoring/grafana/provisioning/dashboards/dashboard.yml`.
-- The dashboard JSON is in `monitoring/grafana/dashboards/microservices-overview.json`.
+All monitoring config is embedded in `k8s/monitoring/` manifests:
+
+- Prometheus scrape config + alert rules → `k8s/monitoring/prometheus.yaml`
+- Alertmanager Slack routing → `k8s/monitoring/alertmanager.yaml`
+- Grafana datasource + dashboard → `k8s/monitoring/grafana.yaml`
 
 Included alerts:
 
@@ -128,33 +77,18 @@ Included alerts:
 - Restart detection using process start time changes
 - High CPU usage: `> 80%` of one CPU core equivalent
 
-## Bastion Load Script
+## Load Test
 
-You can generate increasing traffic from your bastion server with `scripts/load-ramp.sh`.
-
-Example:
+Generate traffic from your EC2 bastion:
 
 ```bash
-BASE_URL="http://your-frontend-load-balancer-dns-name" ./scripts/load-ramp.sh
-```
-
-Custom example:
-
-```bash
-BASE_URL="http://your-frontend-load-balancer-dns-name" \
-START_USERS=10 \
-STEP_USERS=10 \
-MAX_USERS=60 \
-STEP_DURATION=45 \
-PAUSE_BETWEEN_REQUESTS=0.15 \
-./scripts/load-ramp.sh
+BASE_URL="http://<frontend-EXTERNAL-IP>" ./scripts/load-ramp.sh
 ```
 
 What it does:
 
-- Starts with a small number of concurrent users
-- Increases load stage by stage
-- Sends traffic to `/`, `/api/users`, `/api/orders`, and `/api/payments`
+- Starts with 5 concurrent users, increases by 5 every 30 seconds up to 25
+- Sends traffic to `/`, `/api/users`, `/api/orders`, `/api/payments`
 - Prints status-code summaries after each stage
 
 ## API Summary
@@ -214,9 +148,16 @@ Create a payment:
 }
 ```
 
+## Clean Up
+
+```bash
+kubectl delete -k k8s/monitoring/
+kubectl delete -k k8s/base/
+```
+
 ## Notes
 
 - The payment gateway is intentionally simulated so retry and circuit breaker behavior can be exercised safely.
 - PostgreSQL tables are created automatically at service startup.
 - Redis is used as the order read-through cache.
-- The frontend proxies `/api/*` through NGINX, which keeps browser calls same-origin in both local and Kubernetes setups.
+- The frontend proxies `/api/*` through NGINX, which keeps browser calls same-origin.
