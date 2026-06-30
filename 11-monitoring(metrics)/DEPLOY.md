@@ -231,6 +231,50 @@ All should be `Running`.
 
 ---
 
+## Step 12.1: Import Grafana Dashboards
+
+After Grafana is running, open it in browser and import these dashboards:
+
+1. Go to Grafana → **+** (left sidebar) → **Import**
+2. Enter the Dashboard ID and click **Load**
+3. Select **Prometheus** as the data source
+4. Click **Import**
+
+Repeat for each dashboard:
+
+| Dashboard | ID | What it shows |
+|---|---|---|
+| Kubernetes Cluster Monitoring | `315` | Overall cluster health, CPU, memory |
+| Kubernetes Pods/Containers | `3662` | Per-pod CPU, memory, restarts |
+| Kubernetes Deployments | `1621` | Deployment replicas, rollouts |
+| Kubernetes API Server | `12006` | API request latency, errors |
+| Kubernetes Nodes | `6417` | Node CPU, memory, disk, network |
+| Kubernetes Namespace Monitoring | `10000` | Per-namespace resource usage |
+| Kubernetes Persistent Volumes | `13602` | PV/PVC capacity and usage |
+| Kubernetes Networking | `15758` | Pod-to-pod traffic, DNS |
+| NGINX Ingress Controller | `9614` | Request rate, errors, latency |
+
+**Note:** Some dashboards need `kube-state-metrics` and `node-exporter` running. Install them:
+
+```bash
+# Install kube-state-metrics
+kubectl apply -f https://github.com/kubernetes/kube-state-metrics/tree/main/examples/standard
+
+# Or use Helm (easier):
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install kube-state-metrics prometheus-community/kube-state-metrics -n kube-system
+helm install node-exporter prometheus-community/prometheus-node-exporter -n kube-system
+```
+
+Verify they're running:
+
+```bash
+kubectl get pods -n kube-system | grep -E "kube-state|node-exporter"
+```
+
+---
+
 ## Step 13: Get Your App URL
 
 ```bash
