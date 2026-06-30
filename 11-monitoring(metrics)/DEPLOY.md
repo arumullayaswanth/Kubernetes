@@ -50,26 +50,24 @@ You should see 3 nodes with status `Ready`. If not, stop here.
 kubectl get storageclass
 ```
 
-You should see `gp2` or `gp3` with `(default)` next to it.
+You should see `gp2` with `(default)` next to it.
 
-Your EKS terraform already installs the EBS CSI driver, so this should work.
+If `gp2` exists but does NOT show `(default)`, run this:
 
-If you do NOT see a default storage class, create one:
+```bash
+kubectl annotate storageclass gp2 storageclass.kubernetes.io/is-default-class=true
+```
 
-```powershell
-kubectl apply -f - <<EOF
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: gp3
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: ebs.csi.aws.com
-volumeBindingMode: WaitForFirstConsumer
-parameters:
-  type: gp3
-  encrypted: "true"
-EOF
+Verify it's now default:
+
+```bash
+kubectl get storageclass
+```
+
+You should see:
+```
+NAME            PROVISIONER             AGE
+gp2 (default)  kubernetes.io/aws-ebs   5m
 ```
 
 ---
