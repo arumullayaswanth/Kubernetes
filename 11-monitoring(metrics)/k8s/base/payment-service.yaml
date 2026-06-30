@@ -15,10 +15,9 @@ spec:
     spec:
       containers:
         - name: payment-service
-          # Update this after pushing to ECR from your bastion server.
-          # Example:
-          # image: 123456789012.dkr.ecr.ap-south-1.amazonaws.com/devops-demo/payment-service:latest
-          image: payment-service:latest
+          # CHANGE THIS: Replace with your ECR image URL
+          # image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/devops-demo/payment-service:latest
+          image: 713939171080.dkr.ecr.us-east-1.amazonaws.com/devops-demo/payment-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
