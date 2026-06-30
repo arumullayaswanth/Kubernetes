@@ -263,5 +263,5 @@ spec:
     app: grafana
   ports:
     - name: http
-      port: 3000
+      port: 80
       targetPort: 3000
