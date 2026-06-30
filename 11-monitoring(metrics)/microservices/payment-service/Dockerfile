@@ -1,6 +1,6 @@
 # ==============================================================================
 # payment-service | Go | Multi-stage DevSecOps Build
-# Final image: ~7MB (scratch — no OS, no shell, nothing extra)
+# Final image: ~7MB (distroless static — no OS, no shell, nothing extra)
 # ==============================================================================
 
 # --- Stage 1: Build the binary ---
@@ -21,11 +21,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o /bin/payment-service \
     ./cmd/server
 
-# --- Stage 2: Scratch (empty image — smallest possible) ---
-FROM scratch
-
-# Security: copy CA certificates for HTTPS calls
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# --- Stage 2: Distroless static (empty image + CA certs built-in) ---
+FROM gcr.io/distroless/static-debian12:nonroot
 
 # Copy the binary
 COPY --from=builder /bin/payment-service /payment-service
@@ -35,8 +32,8 @@ LABEL maintainer="yaswanth.arumulla@gmail.com"
 LABEL service="payment-service"
 LABEL org.opencontainers.image.source="https://github.com/arumullayaswanth/Kubernetes"
 
-# Security: run as non-root (UID 65534 = nobody)
-USER 65534:65534
+# Security: distroless nonroot = UID 65532
+USER nonroot
 
 EXPOSE 8080
 
