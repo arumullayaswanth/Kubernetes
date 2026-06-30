@@ -1,7 +1,15 @@
 # ==============================================================================
-# Grafana Dashboard Auto-Downloader
-# Downloads dashboards from grafana.com by ID and saves them as JSON files.
-# Grafana's file provisioner picks them up automatically — no manual import.
+# Grafana Dashboard Auto-Downloader ConfigMap
+#
+# Downloads production Kubernetes dashboards from grafana.com during pod init.
+# Grafana's file-based provisioner auto-loads them — zero manual work.
+#
+# How it works:
+#   1. initContainer runs this script before Grafana starts
+#   2. Downloads JSON from grafana.com API by dashboard ID
+#   3. Replaces datasource variables with our Prometheus UID
+#   4. Saves to shared volume at /var/lib/grafana/dashboards/kubernetes/
+#   5. Grafana starts and provisions them automatically from disk
 # ==============================================================================
 apiVersion: v1
 kind: ConfigMap
@@ -16,69 +24,62 @@ data:
     DEST="/var/lib/grafana/dashboards/kubernetes"
     mkdir -p "$DEST"
 
-    # Dashboard IDs from grafana.com
-    # Format: ID:FILENAME
-    DASHBOARDS="
-    315:cluster-monitoring
-    3662:pods-containers
-    1621:deployments
-    12006:api-server
-    6417:nodes
-    10000:namespace-monitoring
-    13602:persistent-volumes
-    15758:networking
-    9614:nginx-ingress
-    "
+    download() {
+      ID=$1
+      NAME=$2
 
-    echo "Downloading Grafana dashboards..."
+      echo "[*] Downloading dashboard ID=$ID name=$NAME ..."
 
-    for entry in $DASHBOARDS; do
-      ID=$(echo "$entry" | cut -d: -f1)
-      NAME=$(echo "$entry" | cut -d: -f2)
+      wget -q -T 10 -O "$DEST/${NAME}.json" \
+        "https://grafana.com/api/dashboards/${ID}/revisions/latest/download" 2>/dev/null
 
-      if [ -z "$ID" ] || [ -z "$NAME" ]; then
-        continue
+      if [ $? -ne 0 ] || [ ! -s "$DEST/${NAME}.json" ]; then
+        echo "    WARN: Failed to download dashboard $ID ($NAME), skipping"
+        rm -f "$DEST/${NAME}.json"
+        return
       fi
 
-      echo "  Downloading dashboard $ID ($NAME)..."
+      # Replace common datasource variable patterns with our Prometheus UID
+      sed -i 's/"uid": "${DS_PROMETHEUS}"/"uid": "prometheus"/g' "$DEST/${NAME}.json"
+      sed -i 's/"uid": "$datasource"/"uid": "prometheus"/g' "$DEST/${NAME}.json"
+      sed -i 's/${DS_PROMETHEUS}/prometheus/g' "$DEST/${NAME}.json"
+      sed -i 's/\${datasource}/prometheus/g' "$DEST/${NAME}.json"
 
-      # Download from grafana.com API
-      wget -q -O "/tmp/${NAME}.json" \
-        "https://grafana.com/api/dashboards/${ID}/revisions/latest/download" 2>/dev/null || {
-        echo "  WARN: Failed to download dashboard $ID, skipping"
-        continue
-      }
-
-      # Wrap in Grafana import format (set datasource to Prometheus)
-      cat > "$DEST/${NAME}.json" <<ENDJSON
-    {
-      "annotations": { "list": [] },
-      "editable": true,
-      "fiscalYearStartMonth": 0,
-      "graphTooltip": 0,
-      "id": null,
-      "links": [],
-      "liveNow": false,
-      "panels": [],
-      "schemaVersion": 39,
-      "tags": ["kubernetes", "auto-provisioned"],
-      "templating": { "list": [] },
-      "time": { "from": "now-1h", "to": "now" },
-      "timezone": "",
-      "title": "${NAME}",
-      "uid": "${NAME}",
-      "version": 1
+      echo "    OK: Saved $DEST/${NAME}.json ($(wc -c < "$DEST/${NAME}.json") bytes)"
     }
-    ENDJSON
 
-      # Use the actual downloaded JSON (overwrite the placeholder)
-      # Inject the correct datasource UID
-      sed 's/${DS_PROMETHEUS}/prometheus/g; s/\${datasource}/prometheus/g' \
-        "/tmp/${NAME}.json" > "$DEST/${NAME}.json" 2>/dev/null || \
-        cp "/tmp/${NAME}.json" "$DEST/${NAME}.json"
+    echo "========================================"
+    echo "Grafana Dashboard Downloader"
+    echo "========================================"
 
-      echo "  ✓ Dashboard $ID saved as ${NAME}.json"
-    done
+    # Kubernetes Cluster Overview
+    download 315 "k8s-cluster-monitoring"
 
-    echo "All dashboards downloaded to $DEST"
+    # Kubernetes Pods and Containers
+    download 3662 "k8s-pods-containers"
+
+    # Kubernetes Deployments
+    download 1621 "k8s-deployments"
+
+    # Kubernetes API Server
+    download 12006 "k8s-apiserver"
+
+    # Kubernetes Nodes (node-exporter full)
+    download 6417 "k8s-nodes"
+
+    # Kubernetes Namespace Monitoring
+    download 10000 "k8s-namespace-monitoring"
+
+    # Kubernetes Persistent Volumes
+    download 13602 "k8s-persistent-volumes"
+
+    # Kubernetes Networking
+    download 15758 "k8s-networking"
+
+    # NGINX Ingress Controller
+    download 9614 "nginx-ingress"
+
+    echo "========================================"
+    echo "Done. Dashboards in $DEST:"
     ls -la "$DEST"
+    echo "========================================"

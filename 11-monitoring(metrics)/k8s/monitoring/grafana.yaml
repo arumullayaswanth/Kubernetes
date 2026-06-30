@@ -205,7 +205,12 @@ spec:
       initContainers:
         - name: download-dashboards
           image: alpine:3.20
-          command: ["sh", "/scripts/download-dashboards.sh"]
+          command:
+            [
+              "sh",
+              "-c",
+              "apk add --no-cache wget && sh /scripts/download-dashboards.sh",
+            ]
           volumeMounts:
             - name: dashboards-kubernetes
               mountPath: /var/lib/grafana/dashboards/kubernetes
