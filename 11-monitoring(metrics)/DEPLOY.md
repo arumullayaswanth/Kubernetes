@@ -30,13 +30,13 @@ Everything goes into one namespace: `devops-demo`
 
 ## Step 1: Connect to Your Cluster
 
-```powershell
+```bash
 aws eks update-kubeconfig --region us-east-1 --name eksprod
 ```
 
 Check it works:
 
-```powershell
+```bash
 kubectl get nodes
 ```
 
@@ -46,7 +46,7 @@ You should see 3 nodes with status `Ready`. If not, stop here.
 
 ## Step 2: Check Storage Class Exists
 
-```powershell
+```bash
 kubectl get storageclass
 ```
 
@@ -76,25 +76,25 @@ EOF
 
 ## Step 3: Set Your Variables
 
-```powershell
-$AWS_REGION = "us-east-1"
-$CLUSTER_NAME = "eksprod"
-$AWS_ACCOUNT_ID = aws sts get-caller-identity --query Account --output text
-$ECR_REGISTRY = "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+```bash
+export AWS_REGION="us-east-1"
+export CLUSTER_NAME="eksprod"
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 ```
 
 Check:
 
-```powershell
-Write-Host "Account: $AWS_ACCOUNT_ID"
-Write-Host "Registry: $ECR_REGISTRY"
+```bash
+echo "Account: $AWS_ACCOUNT_ID"
+echo "Registry: $ECR_REGISTRY"
 ```
 
 ---
 
 ## Step 4: Create ECR Repositories
 
-```powershell
+```bash
 aws ecr create-repository --repository-name devops-demo/user-service --region $AWS_REGION
 aws ecr create-repository --repository-name devops-demo/order-service --region $AWS_REGION
 aws ecr create-repository --repository-name devops-demo/payment-service --region $AWS_REGION
@@ -107,7 +107,7 @@ If it says "already exists" — that's fine, move on.
 
 ## Step 5: Login Docker to ECR
 
-```powershell
+```bash
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 ```
 
@@ -119,24 +119,24 @@ You should see: `Login Succeeded`
 
 Run from inside the `11-monitoring(metrics)` folder:
 
-```powershell
-docker build -t user-service:latest .\microservices\user-service
-docker build -t order-service:latest .\microservices\order-service
-docker build -t payment-service:latest .\microservices\payment-service
-docker build -t frontend:latest .\microservices\frontend
+```bash
+docker build -t user-service:latest ./microservices/user-service
+docker build -t order-service:latest ./microservices/order-service
+docker build -t payment-service:latest ./microservices/payment-service
+docker build -t frontend:latest ./microservices/frontend
 ```
 
 Check:
 
-```powershell
-docker images | Select-String "service|frontend"
+```bash
+docker images | grep -E "service|frontend"
 ```
 
 ---
 
 ## Step 7: Tag Images for ECR
 
-```powershell
+```bash
 docker tag user-service:latest "$ECR_REGISTRY/devops-demo/user-service:latest"
 docker tag order-service:latest "$ECR_REGISTRY/devops-demo/order-service:latest"
 docker tag payment-service:latest "$ECR_REGISTRY/devops-demo/payment-service:latest"
@@ -147,7 +147,7 @@ docker tag frontend:latest "$ECR_REGISTRY/devops-demo/frontend:latest"
 
 ## Step 8: Push Images to ECR
 
-```powershell
+```bash
 docker push "$ECR_REGISTRY/devops-demo/user-service:latest"
 docker push "$ECR_REGISTRY/devops-demo/order-service:latest"
 docker push "$ECR_REGISTRY/devops-demo/payment-service:latest"
@@ -190,7 +190,7 @@ Replace `<YOUR_ACCOUNT_ID>` with your actual number (like `123456789012`).
 
 One command — deploys everything:
 
-```powershell
+```bash
 kubectl apply -k k8s/base/
 ```
 
@@ -200,7 +200,7 @@ This applies all files in order: namespace → configmap → secrets → postgre
 
 ## Step 11: Wait for Pods to Be Ready
 
-```powershell
+```bash
 kubectl get pods -n devops-demo -w
 ```
 
@@ -210,7 +210,7 @@ Press `Ctrl+C` to stop watching.
 
 If a pod is stuck, check why:
 
-```powershell
+```bash
 kubectl describe pod <pod-name> -n devops-demo
 kubectl logs <pod-name> -n devops-demo
 ```
@@ -219,13 +219,13 @@ kubectl logs <pod-name> -n devops-demo
 
 ## Step 12: Deploy Monitoring (Prometheus + Grafana + Alertmanager)
 
-```powershell
+```bash
 kubectl apply -k k8s/monitoring/
 ```
 
 Check:
 
-```powershell
+```bash
 kubectl get pods -n devops-demo
 ```
 
@@ -235,7 +235,7 @@ All should be `Running`.
 
 ## Step 13: Get Your App URL
 
-```powershell
+```bash
 kubectl get svc frontend -n devops-demo
 ```
 
@@ -257,7 +257,7 @@ http://<EXTERNAL-IP>
 
 ## Step 14: Get Grafana URL
 
-```powershell
+```bash
 kubectl get svc grafana -n devops-demo
 ```
 
@@ -275,7 +275,7 @@ Login:
 
 ## Step 15: Access Prometheus (port-forward)
 
-```powershell
+```bash
 kubectl port-forward -n devops-demo svc/prometheus 9090:9090
 ```
 
@@ -310,7 +310,7 @@ This sends traffic for ~2.5 minutes. Watch Grafana dashboards while it runs.
 
 ## Step 18: Check Everything is Working
 
-```powershell
+```bash
 kubectl get all -n devops-demo
 kubectl get pvc -n devops-demo
 kubectl get svc -n devops-demo
@@ -322,7 +322,7 @@ kubectl get svc -n devops-demo
 
 When you're done:
 
-```powershell
+```bash
 kubectl delete -k k8s/monitoring/
 kubectl delete -k k8s/base/
 ```
