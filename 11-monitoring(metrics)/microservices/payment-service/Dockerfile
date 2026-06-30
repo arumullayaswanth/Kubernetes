@@ -8,13 +8,12 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /src
 
-# Cache dependencies
+# Copy go.mod and generate go.sum (go.sum not committed to repo)
 COPY go.mod ./
-RUN go mod download && go mod verify
-
-# Copy source and build a fully static binary
 COPY cmd ./cmd
 COPY internal ./internal
+
+RUN go mod tidy && go mod download && go mod verify
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-s -w" \
