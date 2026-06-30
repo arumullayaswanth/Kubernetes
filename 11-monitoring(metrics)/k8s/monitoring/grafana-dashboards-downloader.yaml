@@ -1,0 +1,84 @@
+# ==============================================================================
+# Grafana Dashboard Auto-Downloader
+# Downloads dashboards from grafana.com by ID and saves them as JSON files.
+# Grafana's file provisioner picks them up automatically — no manual import.
+# ==============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-downloader
+  namespace: devops-demo
+data:
+  download-dashboards.sh: |
+    #!/bin/sh
+    set -e
+
+    DEST="/var/lib/grafana/dashboards/kubernetes"
+    mkdir -p "$DEST"
+
+    # Dashboard IDs from grafana.com
+    # Format: ID:FILENAME
+    DASHBOARDS="
+    315:cluster-monitoring
+    3662:pods-containers
+    1621:deployments
+    12006:api-server
+    6417:nodes
+    10000:namespace-monitoring
+    13602:persistent-volumes
+    15758:networking
+    9614:nginx-ingress
+    "
+
+    echo "Downloading Grafana dashboards..."
+
+    for entry in $DASHBOARDS; do
+      ID=$(echo "$entry" | cut -d: -f1)
+      NAME=$(echo "$entry" | cut -d: -f2)
+
+      if [ -z "$ID" ] || [ -z "$NAME" ]; then
+        continue
+      fi
+
+      echo "  Downloading dashboard $ID ($NAME)..."
+
+      # Download from grafana.com API
+      wget -q -O "/tmp/${NAME}.json" \
+        "https://grafana.com/api/dashboards/${ID}/revisions/latest/download" 2>/dev/null || {
+        echo "  WARN: Failed to download dashboard $ID, skipping"
+        continue
+      }
+
+      # Wrap in Grafana import format (set datasource to Prometheus)
+      cat > "$DEST/${NAME}.json" <<ENDJSON
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [],
+      "schemaVersion": 39,
+      "tags": ["kubernetes", "auto-provisioned"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "timezone": "",
+      "title": "${NAME}",
+      "uid": "${NAME}",
+      "version": 1
+    }
+    ENDJSON
+
+      # Use the actual downloaded JSON (overwrite the placeholder)
+      # Inject the correct datasource UID
+      sed 's/${DS_PROMETHEUS}/prometheus/g; s/\${datasource}/prometheus/g' \
+        "/tmp/${NAME}.json" > "$DEST/${NAME}.json" 2>/dev/null || \
+        cp "/tmp/${NAME}.json" "$DEST/${NAME}.json"
+
+      echo "  ✓ Dashboard $ID saved as ${NAME}.json"
+    done
+
+    echo "All dashboards downloaded to $DEST"
+    ls -la "$DEST"

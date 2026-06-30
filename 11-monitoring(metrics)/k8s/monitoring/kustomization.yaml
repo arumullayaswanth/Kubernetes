@@ -6,4 +6,5 @@ resources:
   - node-exporter.yaml
   - alertmanager.yaml
   - prometheus.yaml
+  - grafana-dashboards-downloader.yaml
   - grafana.yaml
