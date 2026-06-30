@@ -54,7 +54,10 @@ spec:
                   name: app-secrets
                   key: POSTGRES_PASSWORD
             - name: DATABASE_URL
-              value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DATABASE_URL_NODE
           readinessProbe:
             httpGet:
               path: /health/ready
