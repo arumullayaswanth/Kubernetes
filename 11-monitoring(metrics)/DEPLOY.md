@@ -188,19 +188,13 @@ Replace `<YOUR_ACCOUNT_ID>` with your actual number (like `123456789012`).
 
 ## Step 10: Deploy the App
 
-Apply everything in this exact order:
+One command — deploys everything:
 
 ```powershell
-kubectl apply -f k8s/base/namespace.yaml
-kubectl apply -f k8s/base/configmap.yaml
-kubectl apply -f k8s/base/secrets.yaml
-kubectl apply -f k8s/base/postgres.yaml
-kubectl apply -f k8s/base/redis.yaml
-kubectl apply -f k8s/base/user-service.yaml
-kubectl apply -f k8s/base/order-service.yaml
-kubectl apply -f k8s/base/payment-service.yaml
-kubectl apply -f k8s/base/frontend.yaml
+kubectl apply -k k8s/base/
 ```
+
+This applies all files in order: namespace → configmap → secrets → postgres → redis → all services.
 
 ---
 
@@ -226,9 +220,7 @@ kubectl logs <pod-name> -n devops-demo
 ## Step 12: Deploy Monitoring (Prometheus + Grafana + Alertmanager)
 
 ```powershell
-kubectl apply -f k8s/monitoring/alertmanager.yaml
-kubectl apply -f k8s/monitoring/prometheus.yaml
-kubectl apply -f k8s/monitoring/grafana.yaml
+kubectl apply -k k8s/monitoring/
 ```
 
 Check:
@@ -331,10 +323,11 @@ kubectl get svc -n devops-demo
 When you're done:
 
 ```powershell
-kubectl delete namespace devops-demo
+kubectl delete -k k8s/monitoring/
+kubectl delete -k k8s/base/
 ```
 
-This deletes everything in one command (pods, services, PVCs, Load Balancers).
+This deletes everything (pods, services, PVCs, Load Balancers).
 
 Wait 2 minutes for AWS to release the Load Balancers, then destroy the cluster from GitHub Actions if needed.
 
